@@ -1,0 +1,243 @@
+{{define "content"}}
+{{if .Error}}<div class="err">{{.Error}}</div>{{end}}
+{{with .Sandbox}}
+<h1>{{.Slug}}</h1>
+<p class="sub"><a href="/sandboxes">← all cashboxes</a> · {{.KindMeaning}}</p>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>Credentials</h2>
+    <div class="rowactions">
+      <button type="button" onclick="dialogFor('sb-edit')">Edit</button>
+      {{if .AccountID}}
+      <button class="ghost" type="button" onclick="dialogFor('sb-balance')">Balance</button>
+      <form method="post" action="/accounts/{{.AccountID}}/block">
+        <input type="hidden" name="back" value="/sandboxes/{{.ID}}">
+        <input type="hidden" name="blocked" value="{{if .Blocked}}false{{else}}true{{end}}">
+        <button class="ghost">{{if .Blocked}}Unblock payer{{else}}Block payer{{end}}</button>
+      </form>
+      {{end}}
+      <form method="post" action="/sandboxes/{{.ID}}/reset"
+            onsubmit="return confirm('Clear this stand&apos;s orders, payments and traffic? The credentials stay.')">
+        <input type="hidden" name="back" value="/sandboxes/{{.ID}}">
+        <button class="ghost">Reset data</button>
+      </form>
+      <span class="sep"></span>
+      <form method="post" action="/sandboxes/{{.ID}}/delete"
+            onsubmit="return confirm('Delete this sandbox and everything recorded under it?')">
+        <button class="ghost danger">Delete</button>
+      </form>
+    </div>
+  </div>
+  <dl class="facts">
+    <dt>Row id</dt><dd>{{.ID}}</dd>
+    <dt>Name</dt><dd>{{.Name}}</dd>
+    <dt>Register kind</dt><dd>{{.Kind}}</dd>
+    <dt>Merchant name</dt>
+    <dd>{{if .MerchantName}}{{.MerchantName}} <span class="opt">what the payer sees on a receipt</span>{{else}}— <span class="opt">receipts name no business</span>{{end}}</dd>
+    <dt>Merchant</dt>
+    <dd>{{if .MerchantGroup}}{{.MerchantGroup}} · shares cards with the other registers of this merchant{{else}}—{{end}}</dd>
+    <dt>Profile</dt><dd>{{if .ConfigName}}{{.ConfigName}}{{else}}none{{end}}</dd>
+    <dt>Cash register id</dt><dd class="copy">{{.MerchantID}}</dd>
+    <dt>Key</dt><dd class="copy">{{.Key}}</dd>
+    <dt>Test key</dt><dd class="copy">{{.TestKey}}</dd>
+    <dt>Merchant endpoint</dt><dd class="copy">{{.Endpoint}}</dd>
+    <dt>Subscribe endpoint</dt><dd class="copy">{{.SubscribeURL}}</dd>
+    <dt>Payer</dt><dd>{{if .PayerName}}{{.PayerName}}{{else}}—{{end}}</dd>
+    <dt>Phone</dt><dd>{{if .PayerPhone}}{{.PayerPhone}}{{else}}—{{end}}</dd>
+    <dt>Balance</dt><dd>{{sum .Balance}} UZS{{if .Blocked}} (payer blocked){{end}}</dd>
+    <dt>Orders</dt><dd>{{.Orders}}</dd>
+    <dt>Payments</dt><dd>{{.Transactions}}</dd>
+  </dl>
+</div>
+{{end}}
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>{{len .Orders}} order(s)</h2>
+    <button type="button" onclick="dialogFor('sb-order')">New order</button>
+  </div>
+  {{if .Orders}}
+  <div class="scroll">
+  <table>
+    <tr><th>Id</th><th class="num">Amount, UZS</th><th>Status</th><th>Description</th><th></th></tr>
+    {{range .Orders}}
+    <tr>
+      <td class="mono"><strong>{{.ID}}</strong></td>
+      <td class="mono num">{{sum .Amount}}</td>
+      <td><span class="tag">{{.Status}}</span>{{if .Locked}} <span class="tag warn">payment in flight</span>{{end}}</td>
+      <td>{{if .Description}}{{.Description}}{{else}}—{{end}}</td>
+      <td class="actions-cell">
+        <form method="post" action="/orders/{{.ID}}/delete"
+              onsubmit="return confirm('Delete order {{.ID}}?')">
+          <input type="hidden" name="back" value="/sandboxes/{{$.Sandbox.ID}}">
+          <button class="ghost danger" type="submit">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+  {{else}}
+  <p class="empty">No orders. A payment settles against one, so a stand needs at least one
+  unless its profile registers walk-in payers as they arrive.</p>
+  {{end}}
+</div>
+
+<dialog id="sb-order">
+  <h3>New order</h3>
+  <form method="post" action="/sandboxes/{{.Sandbox.ID}}/orders" class="edit">
+    <div>
+      <label for="o_amount">Amount (tiyin)</label>
+      <input id="o_amount" name="amount" type="number" min="1" value="500000" required>
+    </div>
+    <div>
+      <label for="o_desc">Description <span class="opt">optional</span></label>
+      <input id="o_desc" name="description" placeholder="Order #1">
+    </div>
+    <p class="hint">The order is billed to this stand's payer, which is the one created with it.</p>
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit">Create</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>Reachable from</h2>
+    <button type="button" onclick="dialogFor('sb-access')">Admit an address</button>
+  </div>
+  {{if .IPRules}}
+  <div class="scroll">
+  <table>
+    <tr><th>Address</th><th>Note</th><th>Added</th><th></th></tr>
+    {{range .IPRules}}
+    <tr>
+      <td class="mono">{{.CIDR}}</td>
+      <td>{{if .Note}}{{.Note}}{{else}}—{{end}}</td>
+      <td class="mono opt">{{.Created}}</td>
+      <td class="actions-cell">
+        <form method="post" action="/access/{{.ID}}/delete"
+              onsubmit="return confirm('Stop admitting {{.CIDR}}?')">
+          <input type="hidden" name="back" value="/sandboxes/{{.SandboxID}}">
+          <button class="ghost danger" type="submit">Remove</button>
+        </form>
+      </td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+  {{else}}
+  <p class="empty">Anywhere. The provider only answers addresses a merchant registered;
+  the first rule here is what turns that check on.</p>
+  {{end}}
+</div>
+
+<dialog id="sb-access">
+  <h3>Admit an address</h3>
+  <form method="post" action="/sandboxes/{{.Sandbox.ID}}/access" class="edit">
+    <div>
+      <label for="cidr">Address or network</label>
+      <input id="cidr" name="cidr" placeholder="203.0.113.7 or 10.0.0.0/8" required>
+    </div>
+    <p class="hint">A bare address admits one machine; an address with a mask admits the network.
+    Everything else is refused before a credential is even looked at.</p>
+    <div>
+      <label for="note">Note <span class="opt">optional</span></label>
+      <input id="note" name="note" placeholder="staging server">
+    </div>
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit">Admit</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="panel">
+  <h2>{{len .History}} balance move(s)</h2>
+  {{if .History}}
+  <table>
+    <tr><th>At</th><th>Source</th><th class="num">Change</th><th class="num">Before</th><th class="num">After</th><th>Why</th></tr>
+    {{range .History}}
+    <tr>
+      <td class="mono">{{.At}}</td>
+      <td><span class="tag">{{.Source}}</span></td>
+      <td class="mono num">{{if .Incoming}}<span class="tag ok">{{signed .Delta}}</span>{{else}}<span class="tag bad">{{signed .Delta}}</span>{{end}}</td>
+      <td class="mono num">{{sum .Before}}</td>
+      <td class="mono num"><strong>{{sum .After}}</strong></td>
+      <td>{{.Note}}{{if .Payment}} · <span class="mono">{{.Payment}}</span>{{end}}</td>
+    </tr>
+    {{end}}
+  </table>
+  {{else}}
+  <p class="empty">No balance moves yet. Top the register up or run a payment through it.</p>
+  {{end}}
+</div>
+
+{{with .Sandbox}}
+<dialog id="sb-edit">
+  <h3>Edit {{.Slug}}</h3>
+  <form method="post" action="/sandboxes/{{.ID}}" class="edit">
+    <input type="hidden" name="back" value="/sandboxes/{{.ID}}">
+    <div>
+      <label for="name">Name</label>
+      <input id="name" name="name" value="{{.Name}}" required>
+    </div>
+    <div>
+      <label for="config">Profile</label>
+      <select id="config" name="config_id">
+        <option value="">no profile</option>
+        {{$config := .ConfigName}}
+        {{range $.Profiles}}<option value="{{.ID}}" {{if eq .Name $config}}selected{{end}}>{{.Name}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="kind">Register kind</label>
+      <select id="kind" name="kind">
+        {{$kind := .Kind}}
+        {{range $.Kinds}}<option value="{{.Value}}" {{if eq .Value $kind}}selected{{end}}>{{.Label}} — {{.Meaning}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="merchant_name">Merchant name <span class="opt">what the payer sees</span></label>
+      <input id="merchant_name" name="merchant_name" value="{{.MerchantName}}" placeholder="Acme">
+    </div>
+    <div>
+      <label for="merchant_group">Merchant <span class="opt">optional</span></label>
+      <input id="merchant_group" name="merchant_group" value="{{.MerchantGroup}}" placeholder="acme">
+    </div>
+    <p class="hint">Registers given the same merchant share their cards, so a card tokenized
+    through the top-up register can be paid out through the dividend one.</p>
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+
+{{if .AccountID}}
+<dialog id="sb-balance">
+  <h3>Balance · {{.Slug}}</h3>
+  <form method="post" action="/accounts/{{.AccountID}}/balance" class="edit balanceform"
+        data-balance="{{.Balance}}">
+    <input type="hidden" name="back" value="/sandboxes/{{.ID}}">
+    <div>
+      <label for="amount">Amount (tiyin) <span class="opt">— minus takes out</span></label>
+      <input id="amount" name="amount" type="number" step="1"
+             placeholder="1000000 or -1000000" required>
+    </div>
+    <dl class="facts">
+      <dt>Current</dt><dd class="current">{{sum .Balance}}</dd>
+      <dt>Result</dt><dd class="result">{{sum .Balance}}</dd>
+    </dl>
+    <p class="hint">{{.KindMeaning}}.</p>
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+{{end}}
+{{end}}
+{{end}}

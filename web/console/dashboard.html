@@ -1,0 +1,166 @@
+{{define "content"}}
+<h1>Dashboard</h1>
+<p class="sub">What the stand has done: the money that moved, how payments ended, and what the
+traffic looked like over the last {{.Window}} minutes.</p>
+
+{{with .Dashboard}}
+
+<div class="cards">
+  <div class="stat">
+    <span class="statlabel">Top up</span>
+    <span class="statvalue">{{sum .Money.TopUpSum}}</span>
+    <span class="opt">{{.Money.TopUpCount}} settled · money off cards</span>
+  </div>
+  <div class="stat">
+    <span class="statlabel">Withdraw</span>
+    <span class="statvalue">{{sum .Money.PayoutSum}}</span>
+    <span class="opt">{{.Money.PayoutCount}} settled · money back onto cards</span>
+  </div>
+  <div class="stat">
+    <span class="statlabel">Net into the registers</span>
+    <span class="statvalue">{{signed .Money.Net}}</span>
+    <span class="opt">top ups less withdrawals</span>
+  </div>
+  <div class="stat">
+    <span class="statlabel">Payments</span>
+    <span class="statvalue">{{.Endings.Total}}</span>
+    <span class="opt">{{.Endings.Settled}} settled · {{.Endings.InFlight}} in progress ·
+      {{.Endings.Cancelled}} cancelled</span>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>How payments ended</h2>
+    <div class="rowactions"><a href="/payments"><button type="button" class="ghost">Open them</button></a></div>
+  </div>
+  {{with .Endings.Segments}}
+  <div class="propbar" role="img"
+       aria-label="How payments ended{{range .}}, {{.Label}} {{.Count}}{{end}}">
+    {{range .}}
+    <span class="propseg" style="width: {{printf "%.2f" .Pct}}%; background: {{.Color}}"
+          title="{{.Label}} · {{.Count}}"></span>
+    {{end}}
+  </div>
+  <ul class="legend">
+    {{range .}}
+    <li><span class="swatch" style="background: {{.Color}}"></span>
+      {{.Label}} <strong>{{.Count}}</strong>
+      <span class="opt">{{printf "%.0f" .Pct}}%</span></li>
+    {{end}}
+  </ul>
+  {{else}}
+  <p class="empty">No payments yet. Drive one through the stand and it lands here.</p>
+  {{end}}
+</div>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>{{len .Cashboxes}} cashbox(es)</h2>
+    <div class="rowactions"><a href="/sandboxes"><button type="button" class="ghost">Manage</button></a></div>
+  </div>
+  {{if .Cashboxes}}
+  <div class="scroll">
+  <table>
+    <tr><th>Cashbox</th><th>Kind</th><th class="num">Balance, UZS</th>
+        <th class="num">Top ups</th><th class="num">Withdrawals</th><th class="num">In progress</th>
+        <th>Payments</th></tr>
+    {{range .Cashboxes}}
+    <tr class="row" data-href="/sandboxes/{{.ID}}">
+      <td><strong>{{.Slug}}</strong>{{if .MerchantName}} <span class="opt">{{.MerchantName}}</span>{{end}}</td>
+      <td><span class="tag" title="{{.KindMeaning}}">{{.Kind}}</span></td>
+      <td class="mono num"><strong>{{sum .Balance}}</strong>{{if .Blocked}} <span class="tag bad">blocked</span>{{end}}</td>
+      <td class="mono num">{{.TopUps}}</td>
+      <td class="mono num">{{.Withdrawals}}</td>
+      <td class="mono num">{{if .InFlight}}<span class="tag warn">{{.InFlight}}</span>{{else}}0{{end}}</td>
+      <td>
+        {{with .Activity}}
+        <span class="propbar mini">
+          {{range .}}<span class="propseg" style="width: {{printf "%.2f" .Pct}}%; background: {{.Color}}"
+                 title="{{.Label}} · {{.Count}}"></span>{{end}}
+        </span>
+        {{else}}<span class="opt">none</span>{{end}}
+      </td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+  {{else}}
+  <p class="empty">No cashbox yet. Add one on the cashboxes screen.</p>
+  {{end}}
+</div>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>Traffic · last {{$.Window}} min</h2>
+    <div class="rowactions"><a href="/traffic"><button type="button" class="ghost">Open the log</button></a></div>
+  </div>
+  <dl class="facts">
+    <dt>Calls</dt><dd>{{.Traffic.Calls}}</dd>
+    <dt>Did not answer 2xx</dt>
+    <dd>{{if .Traffic.Failed}}<span class="tag bad">{{.Traffic.Failed}}</span>{{else}}0{{end}}
+      <span class="opt">transport failures</span></dd>
+    <dt>Answered an error</dt>
+    <dd>{{if .Traffic.Errors}}<span class="tag bad">{{.Traffic.Errors}}</span>{{else}}0{{end}}
+      <span class="opt">a protocol error inside a 200, which is how the provider reports most of them</span></dd>
+    <dt>Time</dt><dd>{{.Traffic.AvgMS}} ms average · {{.Traffic.SlowMS}} ms slowest</dd>
+    {{with .Traffic.Bars}}
+    <dt>Most called</dt>
+    <dd>
+      <ul class="barchart" role="img"
+          aria-label="Calls by method{{range .}}, {{.Label}} {{.Count}}{{end}}">
+        {{range .}}
+        <li>
+          <span class="barlabel" title="{{.Label}}">{{.Label}}</span>
+          <span class="bartrack">
+            <span class="barfill" style="width: {{printf "%.2f" .Pct}}%"
+                  title="{{.Label}} · {{.Count}} calls"></span>
+          </span>
+          <span class="barvalue mono">{{.Count}}</span>
+        </li>
+        {{end}}
+      </ul>
+    </dd>
+    {{end}}
+  </dl>
+</div>
+
+<div class="panel">
+  <h2>Cards</h2>
+  <dl class="facts">
+    <dt>On the stand</dt><dd>{{.Cards.Total}}</dd>
+    <dt>Rigged to refuse</dt>
+    <dd>{{if .Cards.Rigged}}<span class="tag bad">{{.Cards.Rigged}}</span>{{else}}0{{end}}
+      <span class="opt">the point of a stand: a card that pays proves less than one that will not</span></dd>
+    <dt>Verified</dt><dd>{{.Cards.Verified}}</dd>
+    <dt>Removed</dt><dd>{{.Cards.Removed}}</dd>
+  </dl>
+</div>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>{{len .Failures}} recent failure(s)</h2>
+    <div class="rowactions"><a href="/traffic?result=failed"><button type="button" class="ghost">All of them</button></a></div>
+  </div>
+  {{if .Failures}}
+  <div class="scroll">
+  <table>
+    <tr><th>At</th><th>Cashbox</th><th>Method</th><th>Status</th><th>Error</th></tr>
+    {{range .Failures}}
+    <tr class="row" data-href="/traffic/{{.ID}}">
+      <td class="mono">{{.At}}</td>
+      <td>{{.Sandbox}}</td>
+      <td class="mono">{{.Method}}</td>
+      <td>{{if ge .Status 400}}<span class="tag bad">{{.Status}}</span>{{else}}<span class="tag">{{.Status}}</span>{{end}}</td>
+      <td>{{if .ErrorCode}}<span class="tag bad">{{.ErrorCode}}</span>{{else}}<span class="opt">—</span>{{end}}</td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+  {{else}}
+  <p class="empty">Nothing has failed. Every call the stand handled came back clean.</p>
+  {{end}}
+</div>
+
+{{end}}
+{{end}}

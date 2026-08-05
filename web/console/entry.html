@@ -1,0 +1,81 @@
+{{define "content"}}
+{{with .Entry}}
+<h1 class="mono">{{.Method}}</h1>
+<p class="sub"><a href="/traffic">← all traffic</a> · {{.Sandbox}} · {{.At}} ·
+  {{if .Failed}}<span class="tag bad">{{.Status}}</span>
+  {{else}}<span class="tag ok">{{.Status}}</span>{{end}}</p>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>Request</h2>
+    <form method="post" action="/traffic/{{.ID}}/delete"
+          onsubmit="return confirm('Delete this entry?')">
+      <button class="ghost danger">Delete</button>
+    </form>
+  </div>
+  <dl class="facts">
+    <dt>Row id</dt><dd>{{.ID}}</dd>
+    <dt>At</dt><dd>{{.At}}</dd>
+    <dt>Sandbox</dt><dd>{{.Sandbox}}</dd>
+    <dt>API</dt><dd>{{.Service}}</dd>
+    <dt>Direction</dt><dd>{{.Direction}}</dd>
+    <dt>Method</dt><dd>{{.Method}}</dd>
+    <dt>Status</dt><dd>{{.Status}}</dd>
+    <dt>Error</dt><dd>{{if .ErrorCode}}{{.ErrorCode}}{{else}}—{{end}}</dd>
+    <dt>Rule</dt><dd>{{if .Rule}}{{.Rule}}{{else}}—{{end}}</dd>
+    <dt>Took</dt><dd>{{.DurationMS}} ms</dd>
+    <dt>From</dt><dd>{{.RemoteAddr}}</dd>
+  </dl>
+</div>
+
+<div class="panel">
+  <h2>Headers</h2>
+  <div class="bodies">
+    <div>
+      <div class="bodylabel">request</div>
+      {{if .RequestHeaders}}
+      <table class="inner">
+        {{range .RequestHeaders}}<tr><th>{{.Name}}</th><td class="copy">{{.Value}}</td></tr>{{end}}
+      </table>
+      {{else}}<p class="empty">(none recorded)</p>{{end}}
+    </div>
+    <div>
+      <div class="bodylabel">response</div>
+      {{if .ResponseHeaders}}
+      <table class="inner">
+        {{range .ResponseHeaders}}<tr><th>{{.Name}}</th><td class="copy">{{.Value}}</td></tr>{{end}}
+      </table>
+      {{else}}<p class="empty">(none recorded)</p>{{end}}
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>Run it again</h2>
+    <div class="rowactions">
+      <button type="button" class="ghost" data-curl="{{$.Curl}}"
+              onclick="copyCurl(this)">Copy as curl</button>
+    </div>
+  </div>
+  <p class="hint">The call as it arrived: same address, same credential, same body. The headers a
+  client sets for itself — the length, the encodings — are left out, because a stale one is how a
+  replayed request hangs.</p>
+  <pre class="curl">{{$.Curl}}</pre>
+</div>
+
+<div class="panel">
+  <h2>Bodies</h2>
+  <div class="bodies">
+    <div>
+      <div class="bodylabel">request</div>
+      <pre>{{if .RequestBody}}{{.RequestBody}}{{else}}(empty){{end}}</pre>
+    </div>
+    <div>
+      <div class="bodylabel">response</div>
+      <pre>{{if .ResponseBody}}{{.ResponseBody}}{{else}}(empty){{end}}</pre>
+    </div>
+  </div>
+</div>
+{{end}}
+{{end}}

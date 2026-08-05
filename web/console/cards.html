@@ -1,0 +1,326 @@
+{{define "content"}}
+<h1>Cards</h1>
+<p class="sub">What pays. Cards added here are rigged: each is told to pay or to refuse with a
+named reason. Cards the register holds arrived on their own, through <code>cards.create</code>.</p>
+
+{{if .Error}}<div class="err">{{.Error}}</div>{{end}}
+
+{{if .LiveOn}}
+<div class="panel live">
+  <details class="fold" data-fold="live" open>
+  <summary>
+    <span class="foldtitle">In progress · last {{.Window}} min</span>
+    <span class="count">{{len .LiveCards}}</span>
+  </summary>
+  <div class="foldbody">
+    <div class="rowactions foldtools">
+      <label class="opt" style="margin:0">
+        <input type="checkbox" id="live-refresh" checked style="min-width:0"> refresh every 5s
+      </label>
+      <form method="get" action="/cards" class="search">
+        <input type="hidden" name="tab" value="{{.Tab}}">
+        <input type="hidden" name="sandbox" value="{{.CardFilter.Sandbox}}">
+        <input type="hidden" name="outcome" value="{{.CardFilter.Outcome}}">
+        <input type="hidden" name="q" value="{{.CardFilter.Query}}">
+        <input type="hidden" name="sort" value="{{.CardFilter.Sort}}">
+        <select name="window" onchange="this.form.submit()">
+          {{$window := .Window}}
+          {{range .Windows}}<option value="{{.}}" {{if eq . $window}}selected{{end}}>last {{.}} min</option>{{end}}
+        </select>
+      </form>
+    </div>
+  {{if .LiveCards}}
+  <div class="scroll">
+  <table>
+    <tr><th>When</th><th>What</th><th>Sandbox</th><th>Number</th><th>OTP</th><th>Behaviour</th></tr>
+    {{range .LiveCards}}
+    <tr class="row" data-href="/cards/{{.ID}}">
+      <td class="mono">{{.Ago}}</td>
+      <td>
+        {{if .Waiting}}<span class="tag warn">{{.Event}} · waiting</span>
+        {{else}}<span class="tag">{{.Event}}</span>{{end}}
+      </td>
+      <td>{{.Sandbox}}</td>
+      <td class="mono">{{.Mask}}</td>
+      <td class="mono">{{if .OTP}}{{.OTP}}{{else}}<span class="opt">shared</span>{{end}}</td>
+      <td>{{if .Fails}}<span class="tag bad">{{.Behaviour}}</span>{{else}}<span class="tag ok">success</span>{{end}}</td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+  {{else}}
+  <p class="empty">No card has been added and no code sent in the last {{.Window}} minute(s).</p>
+  {{end}}
+  </div>
+  </details>
+</div>
+{{end}}
+
+
+<dialog id="card-new">
+  <h3>New mock card</h3>
+  <form method="post" action="/cards" class="edit">
+    <div>
+      <label for="sandbox_id">Sandbox</label>
+      <select id="sandbox_id" name="sandbox_id" required>
+        {{range .Sandboxes}}<option value="{{.ID}}">{{.Slug}}</option>{{end}}
+      </select>
+    </div>
+    <div class="inline">
+      <div>
+        <label for="number">Number</label>
+        <input id="number" name="number" placeholder="8600 0000 0000 0000" required>
+      </div>
+      <div>
+        <label for="expire">Expiry <span class="opt">MMYY</span></label>
+        <input id="expire" name="expire" placeholder="0399" required>
+      </div>
+    </div>
+    <div class="gen">
+      <span class="opt">Make one up:</span>
+      <button type="button" class="ghost" onclick="genNumber('8600')">Uzcard number</button>
+      <button type="button" class="ghost" onclick="genNumber('9860')">Humo number</button>
+      <button type="button" class="ghost" onclick="genExpire(4)">In date</button>
+      <button type="button" class="ghost" onclick="genExpire(-2)">Expired</button>
+    </div>
+    <p class="hint">8600 is Uzcard, 9860 is Humo. Nothing is checked against a real network, and a
+    generated number is rolled again if it is one already on this screen.
+    <em>Expired</em> only writes a date in the past; a stand answers by its behaviour, so pick
+    <em>card has expired</em> below to have the card actually refuse.</p>
+    <p class="hint">A card added here is verified with 666666. A card an integration tokenized itself
+    takes its own expiry with the year repeated instead: 12/26 is verified with 122626.</p>
+    <div>
+      <label for="outcome">Behaviour</label>
+      <select id="outcome" name="outcome">
+        {{range .Outcomes}}<option value="{{.Value}}">{{.Label}}</option>{{end}}
+      </select>
+    </div>
+    <p class="hint">A refusing card answers -31008 with its own reason, which is what the provider does.</p>
+    <div class="inline">
+      <div>
+        <label for="balance">Balance (tiyin)</label>
+        <input id="balance" name="balance" type="number" min="0" value="100000000">
+      </div>
+      <div>
+        <label for="delay">Stall (seconds)</label>
+        <input id="delay" name="delay" type="number" min="0" step="0.1" value="0">
+      </div>
+    </div>
+    <p class="hint">A stall lands before the behaviour, so ten seconds and a system error together
+    are the card a timeout is written against.</p>
+    <div>
+      <label for="phone">Phone <span class="opt">optional</span></label>
+      <input id="phone" name="phone" placeholder="998901234567">
+    </div>
+    <div>
+      <label><input type="checkbox" name="verify" value="1" checked style="min-width:0"> Already verified</label>
+      <label><input type="checkbox" name="recurrent" value="1" checked style="min-width:0"> Recurrent (token survives payment)</label>
+      <label><input type="checkbox" name="sms_enabled" value="1" checked style="min-width:0"> SMS enabled (unticked, no OTP can be sent)</label>
+      <label><input type="checkbox" name="frozen" value="1" style="min-width:0"> Frozen balance (payments never move the figure)</label>
+    </div>
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit">Add</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="card-seed">
+  <h3>Add the provider's test cards</h3>
+  <form method="post" action="/cards/seed" class="edit">
+    <div>
+      <label for="seed_sandbox">Sandbox</label>
+      <select id="seed_sandbox" name="sandbox_id" required>
+        {{range .Sandboxes}}<option value="{{.ID}}">{{.Slug}}</option>{{end}}
+      </select>
+    </div>
+    <p class="hint">The seven numbers Payme publishes for its own sandbox, each rigged to the
+    behaviour the documentation gives it: SMS not enabled, expired, blocked, system error, and a
+    card that takes ten seconds before failing. A number the stand already has is left alone.</p>
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit">Add the set</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="card-filter">
+  <h3>Filter cards</h3>
+  <form method="get" action="/cards" class="edit">
+    <input type="hidden" name="tab" value="{{.Tab}}">
+    <div>
+      <label for="f_sandbox">Sandbox</label>
+      <select id="f_sandbox" name="sandbox">
+        <option value="">every sandbox</option>
+        {{$sandbox := .CardFilter.Sandbox}}
+        {{range .Sandboxes}}<option value="{{.Slug}}" {{if eq .Slug $sandbox}}selected{{end}}>{{.Slug}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="f_outcome">Behaviour</label>
+      <select id="f_outcome" name="outcome">
+        <option value="">any behaviour</option>
+        {{$outcome := .CardFilter.Outcome}}
+        {{range .FilterOutcomes}}<option value="{{.Value}}" {{if eq .Value $outcome}}selected{{end}}>{{.Label}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="f_sort">Order</label>
+      <select id="f_sort" name="sort">
+        {{$sort := .CardFilter.Sort}}
+        {{range .Sorts}}<option value="{{.Value}}" {{if eq .Value $sort}}selected{{end}}>{{.Label}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="f_q">Number or token</label>
+      <input id="f_q" name="q" value="{{.CardFilter.Query}}" placeholder="8600 or a full token">
+    </div>
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit">Apply</button>
+    </div>
+  </form>
+</dialog>
+
+<nav class="tabs">
+  <a href="/cards?tab=mocks" {{if eq .Tab "mocks"}}class="on"{{end}}>Mocks<span class="count">{{.MockCount}}</span></a>
+  <a href="/cards?tab=cashbox" {{if eq .Tab "cashbox"}}class="on"{{end}}>In the cashbox<span class="count">{{.CashboxCount}}</span></a>
+</nav>
+
+<div class="panel">
+  <div class="panelhead">
+    {{if eq .Tab "mocks"}}
+    <h2>{{len .Cards}} rigged card(s)</h2>
+    {{else}}
+    <h2>{{len .Cards}} card(s) the register holds</h2>
+    {{end}}
+    <div class="rowactions">
+      {{if or .CardFilter.Sandbox .CardFilter.Outcome .CardFilter.Query (ne .CardFilter.Sort "newest")}}
+      {{if .CardFilter.Sandbox}}<span class="tag">{{.CardFilter.Sandbox}}</span>{{end}}
+      {{if .CardFilter.Outcome}}<span class="tag">{{.CardFilter.Outcome}}</span>{{end}}
+      {{if .CardFilter.Query}}<span class="tag">“{{.CardFilter.Query}}”</span>{{end}}
+      {{if ne .CardFilter.Sort "newest"}}<span class="tag">{{.CardFilter.Sort}} first</span>{{end}}
+      <a href="/cards?tab={{.Tab}}"><button type="button" class="ghost">Clear</button></a>
+      {{end}}
+      <form method="get" action="/cards" class="search">
+        <input type="hidden" name="tab" value="{{.Tab}}">
+        <input type="hidden" name="sandbox" value="{{.CardFilter.Sandbox}}">
+        <input type="hidden" name="outcome" value="{{.CardFilter.Outcome}}">
+        <input type="hidden" name="sort" value="{{.CardFilter.Sort}}">
+        <input type="search" name="q" value="{{.CardFilter.Query}}" placeholder="number or token">
+        <button type="submit" class="ghost">Search</button>
+      </form>
+      <button type="button" class="ghost" onclick="dialogFor('card-filter')">Filter</button>
+      {{if eq .Tab "mocks"}}
+      <button type="button" class="ghost" onclick="dialogFor('card-seed')">Payme test cards</button>
+      <button type="button" onclick="dialogFor('card-new')">New card</button>
+      {{end}}
+    </div>
+  </div>
+  {{if .Cards}}
+  <div class="scroll">
+  <table>
+    <tr><th>Number</th><th>Merchant</th><th>OTP</th><th>Behaviour</th><th class="num">Balance, UZS</th></tr>
+    {{range .Cards}}
+    <tr class="row" data-href="/cards/{{.ID}}">
+      <td class="mono"><strong>{{.Mask}}</strong> <span class="opt">{{.Expire}}</span></td>
+      <td>{{if .Merchant}}{{.Merchant}}{{else}}<span class="opt">{{.Sandbox}} only</span>{{end}}</td>
+      <td class="mono">{{if .OTP}}{{.OTP}}{{else}}<span class="opt">shared</span>{{end}}</td>
+      <td>
+        {{if .Fails}}<span class="tag bad">{{.Behaviour}}</span>{{else}}<span class="tag ok">success</span>{{end}}
+        {{if .Registered}}<span class="tag">registered</span>{{end}}
+        {{if .Removed}}<span class="tag warn">removed</span>{{end}}
+        {{if not .Verify}}<span class="tag">unverified</span>{{end}}
+        {{if not .SMSEnabled}}<span class="tag warn">no SMS</span>{{end}}
+        {{if .Frozen}}<span class="tag warn">frozen</span>{{end}}
+        {{if .Delay}}<span class="tag warn">{{.Delay}}s stall</span>{{end}}
+      </td>
+      <td class="mono num">{{sum .Balance}}</td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+
+  {{else if eq .Tab "mocks"}}
+  <p class="empty">No mock cards yet. Add one to rehearse a payment, or a refusal.</p>
+  {{else}}
+  <p class="empty">The register holds no cards. One appears here the moment an integration calls cards.create.</p>
+  {{end}}
+{{if .Page.Rows}}
+<div class="pager">
+  {{if .Page.HasPrev}}<a href="{{.Page.PrevURL}}"><button type="button" class="ghost">← Newer</button></a>
+  {{else}}<button type="button" class="ghost" disabled>← Newer</button>{{end}}
+  <span class="opt">{{.Page.From}}–{{.Page.To}}</span>
+  {{if .Page.HasNext}}<a href="{{.Page.NextURL}}"><button type="button" class="ghost">Older →</button></a>
+  {{else}}<button type="button" class="ghost" disabled>Older →</button>{{end}}
+  <span class="sizes">
+    {{range .Page.Sizes}}<a href="{{.URL}}" {{if .On}}class="on"{{end}}>{{.Value}}</a>{{end}}
+    <span class="opt">per page</span>
+  </span>
+</div>
+{{end}}
+
+</div>
+
+<script>
+// The numbers already on this screen, so a generated one does not land on a
+// card the merchant holds. The stand refuses a duplicate anyway — a card is one
+// card — but being sent back to a form with an error is a worse way to find out.
+var heldNumbers = [{{range .Cards}}"{{.Number}}",{{end}}];
+
+// A number the eye reads as a card: sixteen digits, the network's prefix, and a
+// last digit that satisfies Luhn. Nothing on the stand checks Luhn, but a number
+// that fails it is one no real terminal would accept, and these numbers get
+// pasted into other systems while a run is being written.
+function genNumber(prefix) {
+  var number = "";
+
+  for (var tries = 0; tries < 50; tries++) {
+    var body = prefix;
+    while (body.length < 15) { body += Math.floor(Math.random() * 10); }
+
+    number = body + luhnDigit(body);
+    if (heldNumbers.indexOf(number) < 0) { break; }
+  }
+
+  var field = document.getElementById('number');
+  field.value = number;
+  field.focus();
+}
+
+// luhnDigit returns the digit that makes the number check out: double every
+// second digit from the right, subtract nine from anything over nine, and take
+// what is missing from the next ten.
+function luhnDigit(body) {
+  var sum = 0;
+  var double = true;
+
+  for (var i = body.length - 1; i >= 0; i--) {
+    var digit = Number(body[i]);
+    if (double) {
+      digit *= 2;
+      if (digit > 9) { digit -= 9; }
+    }
+    sum += digit;
+    double = !double;
+  }
+
+  return (10 - (sum % 10)) % 10;
+}
+
+// genExpire writes an expiry that many years from now: forward for a card in
+// date, backward for one that is not. The month is left where today's is, so
+// the date is plainly readable as "same month, another year".
+function genExpire(years) {
+  var when = new Date();
+  when.setFullYear(when.getFullYear() + years);
+
+  var month = String(when.getMonth() + 1).padStart(2, '0');
+  var year = String(when.getFullYear() % 100).padStart(2, '0');
+
+  var field = document.getElementById('expire');
+  field.value = month + year;
+  field.focus();
+}
+</script>
+{{end}}

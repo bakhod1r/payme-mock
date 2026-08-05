@@ -1,0 +1,154 @@
+{{define "content"}}
+<h1>Transactions</h1>
+<p class="sub">Payments the merchant recorded. Filter for the two that matter: the ones that never
+finished, and the ones that came back an error.</p>
+
+{{if .Error}}<div class="err">{{.Error}}</div>{{end}}
+
+{{if .LiveOn}}
+<div class="panel live">
+  <details class="fold" data-fold="live" open>
+  <summary>
+    <span class="foldtitle">In progress · last {{.Window}} min</span>
+    <span class="count">{{len .LiveTransactions}}</span>
+  </summary>
+  <div class="foldbody">
+    <div class="rowactions foldtools">
+      <label class="opt" style="margin:0">
+        <input type="checkbox" id="live-refresh" checked style="min-width:0"> refresh every 5s
+      </label>
+      <form method="get" class="search">
+        <select name="window" onchange="this.form.submit()">
+          {{$window := .Window}}
+          {{range .Windows}}<option value="{{.}}" {{if eq . $window}}selected{{end}}>last {{.}} min</option>{{end}}
+        </select>
+      </form>
+    </div>
+  {{if .LiveTransactions}}
+  <div class="scroll">
+  <table>
+    <tr>
+      <th>When</th><th>Sandbox</th><th>Payme id</th><th>Order</th>
+      <th class="num">Amount, UZS</th><th>State</th>
+    </tr>
+    {{range .LiveTransactions}}
+    <tr class="row" data-href="/transactions/{{.ID}}">
+      <td class="mono">{{.Ago}}</td>
+      <td>{{.Sandbox}}</td>
+      <td class="mono">{{.PaymeID}}</td>
+      <td class="mono">{{.OrderID}}</td>
+      <td class="mono num">{{sum .Amount}}</td>
+      <td>
+        {{if .Failed}}<span class="tag bad">{{.State}} · {{.StateLabel}}</span>
+        {{else if .Open}}<span class="tag warn">{{.State}} · in progress</span>
+        {{else}}<span class="tag ok">{{.State}} · {{.StateLabel}}</span>{{end}}
+      </td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+  {{else}}
+  <p class="empty">Nothing has moved in the last {{.Window}} minute(s), and nothing is open.</p>
+  {{end}}
+  </div>
+  </details>
+</div>
+{{end}}
+
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>{{len .Transactions}} transaction(s)</h2>
+    <div class="rowactions">
+      {{if or .Filter.Sandbox .Filter.State .Filter.Query (ne .Filter.Sort "newest")}}
+      {{if .Filter.Sandbox}}<span class="tag">{{.Filter.Sandbox}}</span>{{end}}
+      {{if .Filter.State}}<span class="tag">{{.Filter.State}}</span>{{end}}
+      {{if .Filter.Query}}<span class="tag">“{{.Filter.Query}}”</span>{{end}}
+      {{if ne .Filter.Sort "newest"}}<span class="tag">{{.Filter.Sort}} first</span>{{end}}
+      <a href="/transactions"><button type="button" class="ghost">Clear</button></a>
+      {{end}}
+      <form method="get" action="/transactions" class="search">
+        <input type="search" name="q" value="{{.Filter.Query}}" placeholder="payme id or order">
+        <button type="submit" class="ghost">Search</button>
+      </form>
+      <button type="button" onclick="dialogFor('tx-filter')">Filter</button>
+    </div>
+  </div>
+
+  {{if .Transactions}}
+  <div class="scroll">
+  <table>
+    <tr>
+      <th>Created</th><th>Cashbox</th><th>Card</th><th>Payme id</th><th>Order</th>
+      <th class="num">Amount, UZS</th><th>State</th>
+    </tr>
+    {{range .Transactions}}
+    <tr class="row" data-href="/transactions/{{.ID}}">
+      <td class="mono">{{.CreatedAt}}</td>
+      <td>{{.Sandbox}} <span class="opt">{{.Kind}}</span></td>
+      <td class="mono">{{.Card}}</td>
+      <td class="mono">{{.PaymeID}}</td>
+      <td class="mono">{{.OrderID}}</td>
+      <td class="mono num">{{sum .Amount}}</td>
+      <td>{{if .Failed}}<span class="tag bad">{{.State}} · {{.StateLabel}}</span>{{else}}<span class="tag ok">{{.State}} · {{.StateLabel}}</span>{{end}}</td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+
+  {{else}}
+  <p class="empty">Nothing matches. Payments show up here as soon as Payme calls the stand.</p>
+  {{end}}
+{{if .Page.Rows}}
+<div class="pager">
+  {{if .Page.HasPrev}}<a href="{{.Page.PrevURL}}"><button type="button" class="ghost">← Newer</button></a>
+  {{else}}<button type="button" class="ghost" disabled>← Newer</button>{{end}}
+  <span class="opt">{{.Page.From}}–{{.Page.To}}</span>
+  {{if .Page.HasNext}}<a href="{{.Page.NextURL}}"><button type="button" class="ghost">Older →</button></a>
+  {{else}}<button type="button" class="ghost" disabled>Older →</button>{{end}}
+  <span class="sizes">
+    {{range .Page.Sizes}}<a href="{{.URL}}" {{if .On}}class="on"{{end}}>{{.Value}}</a>{{end}}
+    <span class="opt">per page</span>
+  </span>
+</div>
+{{end}}
+
+</div>
+
+<dialog id="tx-filter">
+  <h3>Filter transactions</h3>
+  <form method="get" action="/transactions" class="edit">
+    <div>
+      <label for="sandbox">Sandbox</label>
+      <select id="sandbox" name="sandbox">
+        <option value="">every sandbox</option>
+        {{$sandbox := .Filter.Sandbox}}
+        {{range .Sandboxes}}<option value="{{.Slug}}" {{if eq .Slug $sandbox}}selected{{end}}>{{.Slug}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="state">State</label>
+      <select id="state" name="state">
+        <option value="">any state</option>
+        {{$state := .Filter.State}}
+        {{range .States}}<option value="{{.Value}}" {{if eq .Value $state}}selected{{end}}>{{.Label}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="sort">Order</label>
+      <select id="sort" name="sort">
+        {{$sort := .Filter.Sort}}
+        {{range .Sorts}}<option value="{{.Value}}" {{if eq .Value $sort}}selected{{end}}>{{.Label}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="q">Payme id or order</label>
+      <input id="q" name="q" value="{{.Filter.Query}}" placeholder="5305e3ba… or 42">
+    </div>
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit">Apply</button>
+    </div>
+  </form>
+</dialog>
+{{end}}

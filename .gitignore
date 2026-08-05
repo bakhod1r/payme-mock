@@ -1,0 +1,19 @@
+# Local configuration, which may hold real keys.
+.env
+.env.local
+.env.*.local
+
+# Coverage artefacts.
+cover.out
+.coverdata/
+
+# Certificates the gateway generates for itself.
+certs/
+
+# Built binaries.
+/bin/
+
+# Editor and OS leftovers.
+.DS_Store
+.idea/
+.vscode/

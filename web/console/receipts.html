@@ -1,0 +1,119 @@
+{{define "content"}}
+<h1>Receipts</h1>
+<p class="sub">What the Subscribe API worked on: a card charged, or a card paid out. A client that
+charges a saved card never touches the merchant side, so this is where that traffic lands —
+Transactions stays empty.</p>
+
+{{if .Error}}<div class="err">{{.Error}}</div>{{end}}
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>{{len .Receipts}} receipt(s)</h2>
+    <div class="rowactions">
+      {{if or .ReceiptFilter.Narrowed (ne .ReceiptFilter.Sort "newest")}}
+      {{if .ReceiptFilter.Sandbox}}<span class="tag">{{.ReceiptFilter.Sandbox}}</span>{{end}}
+      {{if .ReceiptFilter.State}}<span class="tag">{{.ReceiptFilter.State}}</span>{{end}}
+      {{if .ReceiptFilter.Kind}}<span class="tag">{{.ReceiptFilter.Kind}}</span>{{end}}
+      {{if .ReceiptFilter.Query}}<span class="tag">“{{.ReceiptFilter.Query}}”</span>{{end}}
+      {{if ne .ReceiptFilter.Sort "newest"}}<span class="tag">{{.ReceiptFilter.Sort}} first</span>{{end}}
+      <a href="/receipts"><button type="button" class="ghost">Clear</button></a>
+      {{end}}
+      <form method="get" action="/receipts" class="search">
+        <input type="search" name="q" value="{{.ReceiptFilter.Query}}" placeholder="receipt id, account or card">
+        <button type="submit" class="ghost">Search</button>
+      </form>
+      <button type="button" onclick="dialogFor('receipt-filter')">Filter</button>
+    </div>
+  </div>
+
+  {{if .Receipts}}
+  <div class="scroll">
+  <table>
+    <tr>
+      <th>Created</th><th>Sandbox</th><th>Receipt id</th><th>Direction</th>
+      <th>Card</th><th class="num">Amount, UZS</th><th>State</th>
+    </tr>
+    {{range .Receipts}}
+    <tr class="row" data-href="/receipts/{{.ID}}">
+      <td class="mono">{{.CreatedAt}}</td>
+      <td>{{.Sandbox}}</td>
+      <td class="mono">{{.ReceiptID}}</td>
+      <td>{{if .Payout}}<span class="tag warn">payout</span>{{else}}<span class="tag">payment</span>{{end}}</td>
+      <td class="mono">{{.Card}}</td>
+      <td class="mono num">{{sum .Amount}}</td>
+      <td>
+        {{if .Failed}}<span class="tag bad">{{.State}} · {{.StateLabel}}</span>
+        {{else if .Open}}<span class="tag warn">{{.State}} · {{.StateLabel}}</span>
+        {{else}}<span class="tag ok">{{.State}} · {{.StateLabel}}</span>{{end}}
+      </td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+
+  {{else}}
+  <p class="empty">Nothing matches. Receipts show up here as soon as a client calls receipts.create or
+  transactions.create.</p>
+  {{end}}
+
+{{if .Page.Rows}}
+<div class="pager">
+  {{if .Page.HasPrev}}<a href="{{.Page.PrevURL}}"><button type="button" class="ghost">← Newer</button></a>
+  {{else}}<button type="button" class="ghost" disabled>← Newer</button>{{end}}
+  <span class="opt">{{.Page.From}}–{{.Page.To}}</span>
+  {{if .Page.HasNext}}<a href="{{.Page.NextURL}}"><button type="button" class="ghost">Older →</button></a>
+  {{else}}<button type="button" class="ghost" disabled>Older →</button>{{end}}
+  <span class="sizes">
+    {{range .Page.Sizes}}<a href="{{.URL}}" {{if .On}}class="on"{{end}}>{{.Value}}</a>{{end}}
+    <span class="opt">per page</span>
+  </span>
+</div>
+{{end}}
+
+</div>
+
+<dialog id="receipt-filter">
+  <h3>Filter receipts</h3>
+  <form method="get" action="/receipts" class="edit">
+    <div>
+      <label for="sandbox">Sandbox</label>
+      <select id="sandbox" name="sandbox">
+        <option value="">every sandbox</option>
+        {{$sandbox := .ReceiptFilter.Sandbox}}
+        {{range .Sandboxes}}<option value="{{.Slug}}" {{if eq .Slug $sandbox}}selected{{end}}>{{.Slug}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="kind">Direction</label>
+      <select id="kind" name="kind">
+        <option value="">both directions</option>
+        {{$kind := .ReceiptFilter.Kind}}
+        {{range .Results}}<option value="{{.Value}}" {{if eq .Value $kind}}selected{{end}}>{{.Label}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="state">State</label>
+      <select id="state" name="state">
+        <option value="">any state</option>
+        {{$state := .ReceiptFilter.State}}
+        {{range .ReceiptStates}}<option value="{{.Value}}" {{if eq .Value $state}}selected{{end}}>{{.Label}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="sort">Order</label>
+      <select id="sort" name="sort">
+        {{$sort := .ReceiptFilter.Sort}}
+        {{range .Sorts}}<option value="{{.Value}}" {{if eq .Value $sort}}selected{{end}}>{{.Label}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="q">Receipt id, account or card</label>
+      <input id="q" name="q" value="{{.ReceiptFilter.Query}}" placeholder="593c088a… or 860049">
+    </div>
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit">Apply</button>
+    </div>
+  </form>
+</dialog>
+{{end}}

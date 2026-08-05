@@ -1,0 +1,87 @@
+{{define "content"}}
+{{with .Rule}}
+<h1 class="mono">{{.Method}}</h1>
+<p class="sub"><a href="/rules">← all rules</a> · {{.Service}} API · {{.Sandbox}} ·
+  {{if .Enabled}}<span class="tag ok">on</span>{{else}}<span class="tag">off</span>{{end}}</p>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>Rule</h2>
+    <div class="rowactions">
+      <button type="button" onclick="dialogFor('rule-edit')">Edit</button>
+      <form method="post" action="/rules/{{.ID}}/toggle">
+        <input type="hidden" name="back" value="/rules/{{.ID}}">
+        <button class="ghost">{{if .Enabled}}Disable{{else}}Enable{{end}}</button>
+      </form>
+      <span class="sep"></span>
+      <form method="post" action="/rules/{{.ID}}/delete"
+            onsubmit="return confirm('Delete this rule?')">
+        <button class="ghost danger">Delete</button>
+      </form>
+    </div>
+  </div>
+  <dl class="facts">
+    <dt>Row id</dt><dd>{{.ID}}</dd>
+    <dt>Name</dt><dd>{{.Name}}</dd>
+    <dt>API</dt><dd>{{.Service}}</dd>
+    <dt>Method</dt><dd>{{.Method}}</dd>
+    <dt>Sandbox</dt><dd>{{.Sandbox}}</dd>
+    <dt>Returns</dt><dd>{{.Detail}}</dd>
+    <dt>Delay</dt><dd>{{if .DelaySeconds}}{{.DelaySeconds}} s{{else}}none{{end}}</dd>
+    <dt>How often</dt><dd>{{.Percent}}%</dd>
+    <dt>Uses left</dt><dd>{{if .TimesLeft}}{{.TimesLeft}}{{else}}forever{{end}}</dd>
+    <dt>Fired</dt><dd>{{.HitCount}}×</dd>
+  </dl>
+</div>
+
+<dialog id="rule-edit">
+  <h3>Edit {{.Method}}</h3>
+  <form method="post" action="/rules/{{.ID}}" class="edit">
+    <input type="hidden" name="back" value="/rules/{{.ID}}">
+    <input type="hidden" name="method" value="{{.Method}}">
+    <input type="hidden" name="service" value="{{.Service}}">
+    <div>
+      <label for="outcome">Returns</label>
+      <select id="outcome" name="outcome" class="rule-outcome"
+              data-method="{{.Method}}" data-current="{{.Outcome}}"></select>
+    </div>
+    <div>
+      <label for="seconds">Seconds to wait first</label>
+      <input id="seconds" name="delay_seconds" type="number" step="0.1" min="0" max="3600"
+             value="{{.DelaySeconds}}" placeholder="0">
+    </div>
+    <div>
+      <label for="prob">How often (%)</label>
+      <input id="prob" name="probability" type="number" min="0" max="100" value="{{.Percent}}">
+    </div>
+    <div>
+      <label for="uses">Uses left</label>
+      <input id="uses" name="times_left" type="number" min="1" value="{{.TimesLeft}}" placeholder="forever">
+    </div>
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+{{end}}
+
+<script>
+// The dialog offers exactly the outcomes this method can produce.
+var outcomes = {
+  {{range .Groups}}{{range .Methods}}
+  {{.Name}}: [{{range .Outcomes}}{value: {{.Value}}, label: {{.Label}}},{{end}}],
+  {{end}}{{end}}
+};
+
+document.querySelectorAll('.rule-outcome').forEach(function (select) {
+  (outcomes[select.dataset.method] || outcomes['*'] || []).forEach(function (item) {
+    var option = document.createElement('option');
+    option.value = item.value;
+    option.textContent = item.label;
+    select.appendChild(option);
+  });
+  if (select.dataset.current) { select.value = select.dataset.current; }
+});
+</script>
+{{end}}

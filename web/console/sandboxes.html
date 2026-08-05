@@ -1,0 +1,89 @@
+{{define "content"}}
+<h1>Sandboxes</h1>
+<p class="sub">Each sandbox is an isolated cash register with its own credentials, payer and balance.</p>
+
+{{if .Error}}<div class="err">{{.Error}}</div>{{end}}
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>{{len .Sandboxes}} sandbox(es)</h2>
+    <div class="rowactions">
+      <form method="get" action="/sandboxes" class="search">
+        <input type="search" name="q" value="{{.Search}}" placeholder="slug, name or cash register id">
+        <button type="submit" class="ghost">Search</button>
+        {{if .Search}}<a href="/sandboxes"><button type="button" class="ghost">Clear</button></a>{{end}}
+      </form>
+    </div>
+    <button type="button" onclick="dialogFor('sb-new')">New sandbox</button>
+  </div>
+  {{if .Sandboxes}}
+  <table>
+
+    <tr>
+      <th>Slug</th><th>Kind</th><th class="num">Balance, UZS</th>
+      <th class="num">Payments</th><th>Profile</th>
+    </tr>
+    {{range .Sandboxes}}
+    <tr class="row" data-href="/sandboxes/{{.ID}}">
+      <td><strong>{{.Slug}}</strong></td>
+      <td><span class="tag" title="{{.KindMeaning}}">{{.Kind}}</span></td>
+      <td class="mono num"><strong>{{sum .Balance}}</strong>{{if .Blocked}} <span class="tag bad">blocked</span>{{end}}</td>
+      <td class="mono num">{{.Transactions}}</td>
+      <td>{{if .ConfigName}}<span class="tag">{{.ConfigName}}</span>{{else}}<span class="tag">none</span>{{end}}</td>
+    </tr>
+    {{end}}
+  </table>
+
+  {{else}}
+  <p class="empty">No sandboxes yet. Use “New sandbox”.</p>
+  {{end}}
+</div>
+<dialog id="sb-new">
+  <h3>New sandbox</h3>
+  <form method="post" action="/sandboxes" class="edit">
+    <div>
+      <label for="slug">Slug</label>
+      <input id="slug" name="slug" placeholder="acme-staging" required>
+    </div>
+    <div>
+      <label for="name">Name</label>
+      <input id="name" name="name" placeholder="Acme staging">
+    </div>
+    <div>
+      <label for="config">Profile</label>
+      <select id="config" name="config_id">
+        <option value="">none</option>
+        {{range .Profiles}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="kind">Register kind</label>
+      <select id="kind" name="kind">
+        {{range .Kinds}}<option value="{{.Value}}" title="{{.Meaning}}">{{.Label}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="merchant_name">Merchant name <span class="opt">what the payer sees</span></label>
+      <input id="merchant_name" name="merchant_name" placeholder="Acme">
+    </div>
+    <p class="hint">The provider puts this on the receipt, so a client rendering one shows a
+    payment to a named business rather than to nobody.</p>
+    <div>
+      <label for="merchant_group">Merchant <span class="opt">optional</span></label>
+      <input id="merchant_group" name="merchant_group" placeholder="acme">
+    </div>
+    <p class="hint">Registers given the same merchant share their cards: a card tokenized
+    through one is spendable through the others, as a merchant's own registers are.
+    Left empty, this register sees only the cards added to it.</p>
+    <div>
+      <label for="balance">Starting balance (tiyin)</label>
+      <input id="balance" name="balance" type="number" min="0" value="100000000">
+    </div>
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit">Create</button>
+    </div>
+  </form>
+</dialog>
+
+{{end}}

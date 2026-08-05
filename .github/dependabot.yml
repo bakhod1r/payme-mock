@@ -1,0 +1,30 @@
+version: 2
+
+# The lint job once failed because the action pinned here had gone two majors
+# stale and installed a golangci-lint that could not read this repo's config.
+# Nothing about that was visible until CI went red, so the updates are asked for
+# rather than waited for.
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    # Majors arrive one pull request at a time: an action's major is the version
+    # that changes what it installs, and that is the one worth reading a diff
+    # for. Patches and minors are grouped, because a pull request each is noise
+    # nobody reviews.
+    groups:
+      actions-minor:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: ci
+
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      go-minor:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: deps

@@ -1,0 +1,82 @@
+{{define "content"}}
+{{with .Order}}
+<h1>Order {{.ID}}</h1>
+<p class="sub"><a href="/orders">← all orders</a> · {{.Sandbox}} · {{.Payer}}</p>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>Order</h2>
+    <div class="rowactions">
+      <button type="button" onclick="dialogFor('order-edit')">Edit</button>
+      <span class="sep"></span>
+      <form method="post" action="/orders/{{.ID}}/delete"
+            onsubmit="return confirm('Delete this order?')">
+        <button class="ghost danger">Delete</button>
+      </form>
+    </div>
+  </div>
+  <dl class="facts">
+    <dt>Row id</dt><dd>{{.ID}}</dd>
+    <dt>Sandbox</dt><dd>{{.Sandbox}}</dd>
+    <dt>Payer</dt><dd>{{.Payer}} (#{{.AccountID}})</dd>
+    <dt>Amount</dt><dd>{{sum .Amount}} UZS <span class="opt">({{.Amount}} tiyin)</span></dd>
+    <dt>Status</dt><dd>{{.Status}}{{if .Locked}} · a payment in flight holds this order{{end}}</dd>
+    <dt>Description</dt><dd>{{if .Description}}{{.Description}}{{else}}—{{end}}</dd>
+  </dl>
+</div>
+
+<div class="panel">
+  <h2>{{len $.Transactions}} payment(s) against this order</h2>
+  {{if $.Transactions}}
+  <div class="scroll">
+  <table>
+    <tr><th>Id</th><th>Payme id</th><th class="num">Amount, UZS</th><th>State</th><th>Created</th></tr>
+    {{range $.Transactions}}
+    <tr class="row" data-href="/transactions/{{.ID}}">
+      <td class="mono"><strong>{{.ID}}</strong></td>
+      <td class="mono">{{.PaymeID}}</td>
+      <td class="mono num">{{sum .Amount}}</td>
+      <td>
+        {{if .Failed}}<span class="tag bad">{{.State}} · {{.StateLabel}}</span>
+        {{else if eq .State 1}}<span class="tag warn">{{.State}} · {{.StateLabel}} · live</span>
+        {{else}}<span class="tag ok">{{.State}} · {{.StateLabel}}</span>{{end}}
+      </td>
+      <td class="mono opt">{{.CreatedAt}}</td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+  {{else}}
+  <p class="empty">Nothing has been paid against this order yet.</p>
+  {{end}}
+</div>
+
+<dialog id="order-edit">
+  <h3>Edit order {{.ID}}</h3>
+  <form method="post" action="/orders/{{.ID}}" class="edit">
+    <input type="hidden" name="back" value="/orders/{{.ID}}">
+    <div>
+      <label for="amount">Amount (tiyin)</label>
+      <input id="amount" name="amount" type="number" min="1" value="{{.Amount}}" required>
+    </div>
+    <div>
+      <label for="status">Status</label>
+      <select id="status" name="status">
+        {{$status := .Status}}
+        {{range $.Statuses}}<option value="{{.}}" {{if eq . $status}}selected{{end}}>{{.}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="desc">Description</label>
+      <input id="desc" name="description" value="{{.Description}}">
+    </div>
+    {{if .Locked}}<p class="hint">A payment in flight holds this order; changing the amount will
+    disagree with what Payme was told.</p>{{end}}
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+{{end}}
+{{end}}

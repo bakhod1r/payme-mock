@@ -1,0 +1,26 @@
+{{define "content"}}
+<h1>Profiles</h1>
+<p class="sub">A profile is a set of tunables plus the fault rules that belong with it.</p>
+
+<div class="panel">
+  <h2>{{len .Profiles}} profile(s)</h2>
+  {{if .Profiles}}
+  <div class="scroll">
+  <table>
+    <tr><th>Name</th><th>Description</th><th>Rules</th><th>Kind</th><th>In use by</th></tr>
+    {{range .Profiles}}
+    <tr>
+      <td><strong>{{.Name}}</strong></td>
+      <td>{{.Description}}</td>
+      <td>{{.Rules}}</td>
+      <td>{{if .Builtin}}<span class="tag ok">built-in</span>{{else}}<span class="tag">custom</span>{{end}}</td>
+      <td>{{.Sandboxes}} sandbox(es)</td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+  {{else}}
+  <p class="empty">No profiles seeded.</p>
+  {{end}}
+</div>
+{{end}}

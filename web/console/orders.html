@@ -1,0 +1,63 @@
+{{define "content"}}
+<h1>Orders</h1>
+<p class="sub">What a payment settles. Payme identifies these by order id, so a stand needs at least one.</p>
+
+{{if .Error}}<div class="err">{{.Error}}</div>{{end}}
+
+<dialog id="order-new">
+  <h3>New order</h3>
+  <form method="post" action="/orders" class="edit">
+    <div>
+      <label for="account_id">Payer</label>
+      <select id="account_id" name="account_id" required>
+        {{range .Accounts}}<option value="{{.ID}}">{{.Sandbox}} · {{.Name}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="amount">Amount (tiyin)</label>
+      <input id="amount" name="amount" type="number" min="1" value="500000" required>
+    </div>
+    <div>
+      <label for="description">Description</label>
+      <input id="description" name="description" placeholder="Order #1">
+    </div>
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit">Create</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>{{len .Orders}} order(s)</h2>
+    <div class="rowactions">
+      <form method="get" action="/orders" class="search">
+        <input type="search" name="q" value="{{.Search}}" placeholder="payer, description or order id">
+        <button type="submit" class="ghost">Search</button>
+        {{if .Search}}<a href="/orders"><button type="button" class="ghost">Clear</button></a>{{end}}
+      </form></div>
+    <button type="button" onclick="dialogFor('order-new')">New order</button>
+  </div>
+  {{if .Orders}}
+  <div class="scroll">
+  <table>
+    <tr><th>Id</th><th>Sandbox</th><th>Payer</th><th class="num">Amount, UZS</th><th>Status</th><th>Description</th></tr>
+    {{range .Orders}}
+    <tr class="row" data-href="/orders/{{.ID}}">
+      <td class="mono"><strong>{{.ID}}</strong></td>
+      <td>{{.Sandbox}}</td>
+      <td>{{.Payer}}</td>
+      <td class="mono num">{{sum .Amount}}</td>
+      <td><span class="tag">{{.Status}}</span>{{if .Locked}} <span class="tag warn">payment in flight</span>{{end}}</td>
+      <td>{{if .Description}}{{.Description}}{{else}}—{{end}}</td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+
+  {{else}}
+  <p class="empty">No orders yet. A payment needs one to settle against.</p>
+  {{end}}
+</div>
+{{end}}

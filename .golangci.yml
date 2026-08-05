@@ -1,0 +1,113 @@
+version: "2"
+
+# The linter set is deliberately small and all of it is enforced: a warning
+# nobody has to fix is a warning everybody learns to scroll past. Anything that
+# fires here either gets changed or gets a //nolint with the reason written next
+# to it.
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    # An error compared with == stops matching the moment somebody wraps it,
+    # and wrapping is what the rest of this codebase does.
+    - errorlint
+    # Returning nil after a non-nil error is nearly always a swallowed failure.
+    # Where it is genuinely the protocol's answer, it is marked as such.
+    - nilerr
+    # The protocol's states and actions are closed sets. A new one added to the
+    # domain must not quietly fall through a switch that predates it.
+    - exhaustive
+    # A background context started where a request context was in scope
+    # detaches the work from the caller's cancellation and timeout.
+    - contextcheck
+    # The layer boundaries, below.
+    - depguard
+
+  settings:
+    exhaustive:
+      # A switch with a default has already said what it does with the rest.
+      default-signifies-exhaustive: true
+
+    depguard:
+      # The dependency rule is one way: domain knows nothing about the layers
+      # above it, and application knows only domain. It is enforced here rather
+      # than by convention because the direction is the whole reason the
+      # packages are split up, and it is invisible in a diff once broken.
+      rules:
+        domain:
+          files:
+            - "**/internal/context/**/domain/*.go"
+            - "!**/*_test.go"
+          deny:
+            # Domain packages may name each other — a config is a bundle of
+            # fault rules, so config/domain works in fault/domain's words. What
+            # domain may never do is depend on a layer built on top of it.
+            - pkg: github.com/bakhod1r/payme-mock/internal/context/**/application
+              desc: >-
+                domain must not import application. Domain is the layer
+                everything else is written against; it cannot know who is
+                orchestrating it.
+            - pkg: github.com/bakhod1r/payme-mock/internal/context/**/infrastructure
+              desc: >-
+                domain must not import infrastructure. It declares the ports it
+                needs and something above wires an implementation in.
+            - pkg: github.com/bakhod1r/payme-mock/internal/context/**/interfaces
+              desc: >-
+                domain must not import a transport. Nothing about HTTP or
+                JSON-RPC belongs this far in.
+        application:
+          files:
+            - "**/internal/context/**/application/*.go"
+            - "!**/*_test.go"
+          deny:
+            - pkg: github.com/bakhod1r/payme-mock/internal/context/**/infrastructure
+              desc: >-
+                application must not reach into infrastructure. It talks to the
+                ports declared in domain, which is what lets a test drive it
+                without a database.
+            - pkg: github.com/bakhod1r/payme-mock/internal/context/**/interfaces
+              desc: >-
+                application must not import a transport. The transport calls
+                application, never the other way round.
+        kernel:
+          files:
+            - "**/internal/kernel/**/*.go"
+          deny:
+            # kernel may name a domain type — the HTTP middleware is where fault
+            # injection and traffic logging actually happen, so it works in the
+            # vocabulary of those domains. What it may not do is reach past a
+            # domain into the layers that were built on top of it.
+            - pkg: github.com/bakhod1r/payme-mock/internal/context/**/application
+              desc: >-
+                kernel is what every context may use, so it may not depend on
+                one context's application layer.
+            - pkg: github.com/bakhod1r/payme-mock/internal/context/**/infrastructure
+              desc: >-
+                kernel must not reach into a context's infrastructure. A kernel
+                package needing a database belongs in that context.
+            - pkg: github.com/bakhod1r/payme-mock/internal/context/**/interfaces
+              desc: >-
+                kernel must not import a context's transport. The transport is
+                built on kernel, never the other way round.
+
+  exclusions:
+    # Errors from a deferred Close on a read-only handle, and from writing to an
+    # http.ResponseWriter, have nowhere to go: the response has already started.
+    presets:
+      - std-error-handling
+    rules:
+      # Test helpers take *testing.T and carry their context inside the harness
+      # rather than through every signature. Threading it through would be
+      # noise in the one place the linter's concern — a detached background
+      # context outliving a request — cannot apply.
+      - path: _test\.go
+        linters:
+          - contextcheck
+
+formatters:
+  enable:
+    - gofmt
