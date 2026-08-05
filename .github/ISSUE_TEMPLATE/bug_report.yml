@@ -1,0 +1,68 @@
+name: Bug report
+description: Something the stand got wrong
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The console records every call with both bodies and both header sets.
+        The relevant entry is usually the whole bug report — the `curl` button on
+        a traffic row copies the exact request, which is the fastest thing you
+        can paste here.
+
+        If this is a **security** issue, do not file it publicly. See
+        [SECURITY.md](https://github.com/bakhod1r/payme-mock/blob/main/SECURITY.md).
+
+  - type: textarea
+    id: called
+    attributes:
+      label: What you called
+      description: The request. Paste the `curl` from the traffic row if you have it.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: got
+    attributes:
+      label: What came back
+      render: json
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+      description: >-
+        If the real provider does something different, say what — that is the
+        difference worth fixing.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: where
+    attributes:
+      label: Which side
+      options:
+        - paymemock — the Subscribe API
+        - merchant — the Merchant API
+        - console
+        - the browser playground
+        - something else
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Commit or version
+      description: "`git rev-parse --short HEAD`, or the release."
+
+  - type: textarea
+    id: rules
+    attributes:
+      label: Any fault rules enabled?
+      description: >-
+        A rule answering a call is marked in the traffic log. It is worth
+        checking before reporting a failure as the stand's own.

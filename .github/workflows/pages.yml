@@ -1,0 +1,44 @@
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    # The site is the only thing this builds, so a push that does not touch it
+    # has nothing to publish.
+    paths:
+      - 'docs/**'
+      - '.github/workflows/pages.yml'
+  # Publishing by hand is useful the first time, before a docs commit exists.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and a newer one wins. Cancelling in progress is
+# wrong here: a half-finished deploy would leave the site on an older commit
+# with no run left to fix it.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/configure-pages@v6
+
+      # docs/ is plain HTML, so there is nothing to build. It is uploaded as it
+      # stands.
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs
+
+      - id: deployment
+        uses: actions/deploy-pages@v5

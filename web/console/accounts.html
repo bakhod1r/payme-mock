@@ -1,0 +1,94 @@
+{{define "content"}}
+<h1>Balances</h1>
+<p class="sub">What each cash register holds for its payers. Amounts are in tiyin.</p>
+
+{{if .Error}}<div class="err">{{.Error}}</div>{{end}}
+
+<div class="panel">
+  <h2>New payer</h2>
+  <form method="post" action="/accounts" class="row">
+    <div>
+      <label for="sandbox_id">Sandbox</label>
+      <select id="sandbox_id" name="sandbox_id" required>
+        {{range .Sandboxes}}<option value="{{.ID}}">{{.Slug}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="name">Name</label>
+      <input id="name" name="name" placeholder="Test payer" required>
+    </div>
+    <div>
+      <label for="phone">Phone</label>
+      <input id="phone" name="phone" placeholder="901234567">
+    </div>
+    <div>
+      <label for="balance">Starting balance</label>
+      <input id="balance" name="balance" type="number" min="0" value="100000000">
+    </div>
+    <button type="submit">Add payer</button>
+  </form>
+</div>
+
+<div class="panel">
+  <h2>{{len .Accounts}} payer(s)</h2>
+  {{if .Accounts}}
+  <div class="scroll">
+  <table>
+    <tr>
+      <th>Sandbox</th><th>Balance</th><th>Orders</th><th>Name and phone</th>
+      <th>Top up</th><th>Withdraw</th><th>Set</th><th>State</th><th></th>
+    </tr>
+    {{range .Accounts}}
+    <tr>
+      <td><strong>{{.Sandbox}}</strong></td>
+      <td class="mono"><strong>{{.Balance}}</strong></td>
+      <td>{{.Orders}}</td>
+      <td>
+        <form method="post" action="/accounts/{{.ID}}" style="display:flex; gap:6px">
+          <input name="name" value="{{.Name}}" style="min-width:140px">
+          <input name="phone" value="{{.Phone}}" placeholder="phone" style="min-width:120px">
+          <button>Save</button>
+        </form>
+      </td>
+      <td>
+        <form method="post" action="/accounts/{{.ID}}/balance" style="display:flex; gap:6px">
+          <input type="hidden" name="op" value="add">
+          <input name="amount" type="number" min="1" placeholder="amount" style="min-width:120px" required>
+          <button>Top up</button>
+        </form>
+      </td>
+      <td>
+        <form method="post" action="/accounts/{{.ID}}/balance" style="display:flex; gap:6px">
+          <input type="hidden" name="op" value="subtract">
+          <input name="amount" type="number" min="1" placeholder="amount" style="min-width:120px" required>
+          <button>Withdraw</button>
+        </form>
+      </td>
+      <td>
+        <form method="post" action="/accounts/{{.ID}}/balance" style="display:flex; gap:6px">
+          <input type="hidden" name="op" value="set">
+          <input name="amount" type="number" min="0" value="{{.Balance}}" style="min-width:140px">
+          <button class="ghost">Set</button>
+        </form>
+      </td>
+      <td>
+        <form method="post" action="/accounts/{{.ID}}/block">
+          <input type="hidden" name="blocked" value="{{if .Blocked}}false{{else}}true{{end}}">
+          <button class="ghost">{{if .Blocked}}blocked{{else}}active{{end}}</button>
+        </form>
+      </td>
+      <td>
+        <form method="post" action="/accounts/{{.ID}}/delete"
+              onsubmit="return confirm('Delete this payer and their orders and payments?')">
+          <button class="ghost">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+  {{else}}
+  <p class="empty">No payers yet. Every sandbox gets one when it is created.</p>
+  {{end}}
+</div>
+{{end}}

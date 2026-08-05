@@ -1,0 +1,141 @@
+name: payme-mock
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: payme
+      POSTGRES_PASSWORD: payme
+      POSTGRES_DB: paymemock
+    ports:
+      - "5433:5432"
+    volumes:
+      # Postgres 18 images keep data in a major-version subdirectory, so the
+      # mount goes one level up; mounting .../data leaves it unused and the
+      # container refuses to start.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payme -d paymemock"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # Our billing: the endpoint Payme sends webhooks to.
+  merchant:
+    build:
+      context: .
+      args:
+        SERVICE: merchant
+    environment:
+      DATABASE_URL: postgres://payme:payme@postgres:5432/paymemock?sslmode=disable
+      REDIS_ADDR: redis:6379
+      HTTP_ADDR: ":8081"
+      SUBSCRIBE_BASE_URL: http://paymemock:8082/api
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+
+  # The Payme emulator: Subscribe API server and checkout, and the caller of
+  # the merchant's Merchant API.
+  paymemock:
+    build:
+      context: .
+      args:
+        SERVICE: paymemock
+    environment:
+      DATABASE_URL: postgres://payme:payme@postgres:5432/paymemock?sslmode=disable
+      REDIS_ADDR: redis:6379
+      HTTP_ADDR: ":8082"
+      MERCHANT_BASE_URL: http://merchant:8081
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+
+  # Control API and UI.
+  console:
+    build:
+      context: .
+      args:
+        SERVICE: console
+    environment:
+      DATABASE_URL: postgres://payme:payme@postgres:5432/paymemock?sslmode=disable
+      REDIS_ADDR: redis:6379
+      HTTP_ADDR: ":8080"
+      # The console shows every sandbox's keys, so it refuses to start without
+      # a password. Set CONSOLE_PASSWORD in .env; there is no default.
+      CONSOLE_USER: ${CONSOLE_USER:-admin}
+      CONSOLE_PASSWORD: ${CONSOLE_PASSWORD:?set CONSOLE_PASSWORD in .env}
+      GATEWAY_BASE_URL: ${GATEWAY_BASE_URL:-https://merchant.localhost:8443}
+      # Docker rewrites the peer to the bridge gateway, so a browser on this
+      # machine arrives from 172.x and the loopback test never matches. The
+      # port below is published to 127.0.0.1 only, so trusting that peer says
+      # exactly what the loopback test said: the request came through the
+      # address only this machine can reach.
+      CONSOLE_TRUST_PRIVATE_NET: "true"
+    ports:
+      # Bound to loopback deliberately. The console shows every sandbox's keys
+      # and skips the login for local callers; published on every interface
+      # that pair would hand the keys to the network.
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  # Two more services are designed but not written yet, so they are commented
+  # out rather than left to fail the build. Their configuration already exists
+  # in internal/kernel/config, which is where each one starts from:
+  #
+  #   worker   background state walks — receipts advancing, holds expiring,
+  #            transactions timing out. Without it the mock settles a payment
+  #            the moment it is asked to.
+  #   gateway  HTTPS front door giving each sandbox a stable endpoint URL, with
+  #            the certificate modes described in .env.example.
+  #
+  # Uncomment a block once cmd/worker or cmd/gateway has a main.
+  #
+  # worker:
+  #   build:
+  #     context: .
+  #     args:
+  #       SERVICE: worker
+  #   environment:
+  #     DATABASE_URL: postgres://payme:payme@postgres:5432/paymemock?sslmode=disable
+  #     REDIS_ADDR: redis:6379
+  #   depends_on:
+  #     postgres: {condition: service_healthy}
+  #     redis: {condition: service_healthy}
+  #
+  # gateway:
+  #   build:
+  #     context: .
+  #     args:
+  #       SERVICE: gateway
+  #   environment:
+  #     DATABASE_URL: postgres://payme:payme@postgres:5432/paymemock?sslmode=disable
+  #     HTTPS_ADDR: ":8443"
+  #     GATEWAY_MODE: local
+  #     MERCHANT_UPSTREAM: http://merchant:8081
+  #     PAYMEMOCK_UPSTREAM: http://paymemock:8082
+  #   ports:
+  #     - "8443:8443"
+  #   volumes:
+  #     - certs:/certs
+  #   depends_on:
+  #     postgres: {condition: service_healthy}
+
+volumes:
+  pgdata:
+  certs:

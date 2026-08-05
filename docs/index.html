@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>payme-mock — a local stand for Payme integrations</title>
+<meta name="description" content="A local stand that speaks both halves of the Payme protocol, so an integration can be driven end to end without a real cashbox, a real card, or a network.">
+<meta property="og:title" content="payme-mock">
+<meta property="og:description" content="A local stand that speaks both halves of the Payme protocol.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='14'>🧪</text></svg>">
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #14171a;
+    --muted: #5c6670;
+    --line: #e3e7ea;
+    --accent: #0b6b5e;
+    --accent-soft: #eef6f4;
+    --code-bg: #f5f7f8;
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1214;
+      --fg: #e7ecef;
+      --muted: #9aa5ad;
+      --line: #232a2f;
+      --accent: #4fd1bd;
+      --accent-soft: #12211f;
+      --code-bg: #161b1e;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 0 20px; }
+  a { color: var(--accent); }
+
+  code, pre {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.875em;
+  }
+  code { background: var(--code-bg); padding: 0.15em 0.4em; border-radius: 4px; }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px;
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+  pre code { background: none; padding: 0; }
+
+  header { padding: 72px 0 40px; border-bottom: 1px solid var(--line); }
+  h1 { font-size: 2.6rem; margin: 0 0 12px; letter-spacing: -0.02em; }
+  .tagline { font-size: 1.2rem; color: var(--muted); margin: 0 0 8px; max-width: 62ch; }
+  .disclaimer {
+    margin-top: 24px; padding: 12px 16px;
+    background: var(--accent-soft); border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 0.92rem; color: var(--muted);
+  }
+  .cta { margin-top: 28px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn {
+    display: inline-block; padding: 10px 18px; border-radius: var(--radius);
+    text-decoration: none; font-weight: 600; font-size: 0.95rem;
+    border: 1px solid var(--accent);
+  }
+  .btn-primary { background: var(--accent); color: var(--bg); }
+  .btn-ghost { color: var(--accent); }
+
+  section { padding: 44px 0; border-bottom: 1px solid var(--line); }
+  h2 { font-size: 1.5rem; margin: 0 0 8px; letter-spacing: -0.01em; }
+  h2 + .lede { color: var(--muted); margin: 0 0 24px; max-width: 62ch; }
+  h3 { font-size: 1.05rem; margin: 0 0 6px; }
+
+  .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .card { border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  .card p { margin: 0; color: var(--muted); font-size: 0.93rem; }
+
+  .table-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.93rem; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 600; white-space: nowrap; }
+  td:first-child { white-space: nowrap; }
+
+  ol.steps { padding-left: 20px; }
+  ol.steps li { margin-bottom: 18px; }
+
+  footer { padding: 40px 0 64px; color: var(--muted); font-size: 0.9rem; }
+  footer a { color: var(--accent); }
+
+  @media (max-width: 600px) {
+    header { padding: 48px 0 32px; }
+    h1 { font-size: 2rem; }
+    .tagline { font-size: 1.05rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>payme-mock</h1>
+    <p class="tagline">
+      A local stand for integrating against <a href="https://developer.help.paycom.uz/">Payme</a>.
+      It speaks both halves of the protocol — the <strong>Subscribe API</strong> your backend calls,
+      and the <strong>Merchant API</strong> the provider calls back — so an integration can be driven
+      end to end without a real cashbox, a real card, or a network.
+    </p>
+    <p class="tagline">
+      It is not a stub. Payments hold state, cards can be rigged to fail the way real cards fail,
+      and every call in and out is recorded with both bodies and both header sets.
+    </p>
+    <div class="cta">
+      <a class="btn btn-primary" href="playground/">Try the API in your browser</a>
+      <a class="btn btn-ghost" href="demo/">Browse the console</a>
+      <a class="btn btn-ghost" href="https://github.com/bakhod1r/payme-mock">View on GitHub</a>
+    </div>
+    <p class="disclaimer">
+      <strong>Not affiliated with Payme or Paycom.</strong>
+      An independent testing tool built from the public protocol documentation.
+      Do not put real card numbers or production keys in it.
+    </p>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>What it is for</h2>
+    <p class="lede">Three things are hard to rehearse against a real sandbox.</p>
+    <div class="grid">
+      <div class="card">
+        <h3>Failures on demand</h3>
+        <p>A blocked card, an expired card, a ten-second timeout, a malformed response, a dropped
+           connection, a webhook delivered twice. Each is a rule you switch on.</p>
+      </div>
+      <div class="card">
+        <h3>The other side's view</h3>
+        <p>The stand keeps the provider's record of a transaction separately from the merchant's.
+           When the two disagree, that disagreement is visible — which is the bug class this exists for.</p>
+      </div>
+      <div class="card">
+        <h3>Repeatability</h3>
+        <p>One seed file puts the whole stand back to a known state, so a run means the same thing
+           tomorrow.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>The API, in your browser</h2>
+    <p class="lede">
+      The <a href="playground/">playground</a> runs the Subscribe API in the page itself: the
+      same Go service the stand runs, compiled to WebAssembly and wired to memory instead of
+      Postgres. Register a card, ask for the OTP, verify it, open a receipt and pay it —
+      nothing is sent anywhere.
+    </p>
+    <p class="lede">
+      The rigging survives the move: pay with the provider's blocked test card and it is
+      refused with <code>-31008</code>, and a browser credential is still turned away from
+      the server-side methods. It is one body of code, so a rule that holds there holds here.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>The console</h2>
+    <p class="lede">
+      A static snapshot, captured from a real stand after a handful of payments were driven through
+      it — three that settled, three rigged to fail, one cancelled and one refused for a bad key.
+      Filters and forms are inert; everything else is the console as it renders.
+    </p>
+    <div class="grid">
+      <div class="card">
+        <h3><a href="demo/">Dashboard</a></h3>
+        <p>Every cashbox with its balance and what went through it, and the last calls in and out.</p>
+      </div>
+      <div class="card">
+        <h3><a href="demo/payments.html">Payments</a></h3>
+        <p>One row per payment, whichever halves of it exist — the provider's receipt, the merchant's
+           transaction, or both, with the two states side by side.</p>
+      </div>
+      <div class="card">
+        <h3><a href="demo/cards.html">Cards</a></h3>
+        <p>Every card the stand knows, with the outcome each one is rigged to produce.</p>
+      </div>
+      <div class="card">
+        <h3><a href="demo/rules.html">Fault rules</a></h3>
+        <p>What is set to go wrong, on which service and method, and how often.</p>
+      </div>
+      <div class="card">
+        <h3><a href="demo/traffic.html">Traffic</a></h3>
+        <p>Every call with both bodies and both header sets, including the ones a rule answered.</p>
+      </div>
+      <div class="card">
+        <h3><a href="demo/sandboxes.html">Sandboxes</a></h3>
+        <p>The cashboxes themselves: merchant ids, keys, kind and merchant group.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Services</h2>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Service</th><th>Port</th><th>What it is</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>paymemock</code></td><td><code>8082</code></td>
+            <td>The provider side: the Subscribe API server, the checkout emulator, and the caller of
+                your Merchant API. Nothing it returns says it is a mock.</td>
+          </tr>
+          <tr>
+            <td><code>merchant</code></td><td><code>8081</code></td>
+            <td>An example merchant: the endpoint the provider calls, with payers, orders and
+                transactions behind it. The reference for what your own endpoint has to do.</td>
+          </tr>
+          <tr>
+            <td><code>console</code></td><td><code>8080</code></td>
+            <td>The control UI: sandboxes, cards, payments, fault rules, the IP allowlist and the
+                live traffic log.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Quick start</h2>
+    <ol class="steps">
+      <li>
+        Clone it and set a console password — the console shows every sandbox's keys, so it refuses
+        to start without one.
+<pre><code>git clone https://github.com/bakhod1r/payme-mock.git
+cd payme-mock
+cp .env.example .env
+$EDITOR .env          # set CONSOLE_PASSWORD</code></pre>
+      </li>
+      <li>
+        Bring the stand up.
+<pre><code>make up</code></pre>
+        The console is on <code>http://127.0.0.1:8080</code>, bound to loopback deliberately.
+      </li>
+      <li>
+        Load the example integration — three cashboxes, a payer each, and the provider's published
+        test cards.
+<pre><code>docker compose exec -T postgres psql -U payme -d paymemock \
+  &lt; seed/example_cashboxes.sql</code></pre>
+      </li>
+      <li>
+        Point your backend's Subscribe base URL at <code>http://localhost:8082/api</code> and give it
+        a sandbox's merchant id and test key. Nothing else in your code changes: swapping the base
+        URL back to the real provider runs the same code against it.
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Rigging a card</h2>
+    <p class="lede">Every card carries an outcome that decides what happens when it is used.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Outcome</th><th>What the caller sees</th></tr></thead>
+        <tbody>
+          <tr><td><code>success</code></td><td>The payment goes through.</td></tr>
+          <tr><td><code>insufficient_funds</code></td><td>Declined for money.</td></tr>
+          <tr><td><code>blocked</code></td><td>Card blocked.</td></tr>
+          <tr><td><code>expired</code></td><td>Card expired.</td></tr>
+          <tr><td><code>verify_failed</code></td><td>The OTP is never accepted.</td></tr>
+          <tr><td><code>system_error</code></td><td>An unattributed processing failure.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="color: var(--muted); margin-top: 18px;">
+      Independently of the outcome: <code>delay_ms</code> holds the answer back,
+      <code>sms_enabled</code> withholds the OTP, and <code>frozen</code> keeps a payment from ever
+      settling. The stand's shared OTP is <code>666666</code>.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Fault injection</h2>
+    <p class="lede">
+      A rule matches on service, method (globs allowed: <code>receipts.*</code>,
+      <code>*Transaction</code>), the account object, the transaction id and an amount range — and
+      then does one thing.
+    </p>
+    <p>
+      <code>delay</code> · <code>rpc_error</code> · <code>http_status</code> ·
+      <code>malformed</code> · <code>drop</code> · <code>duplicate</code> · <code>passthrough</code>
+    </p>
+    <p style="color: var(--muted);">
+      Rules are ordered by priority and the first match wins, so a broad rule can sit behind a narrow
+      one. <code>probability</code> and <code>times_left</code> make a rule intermittent, which is
+      what a retry path actually has to survive. Every call answered by a rule is marked as such in
+      the traffic log, so a deliberate failure is never mistaken for a real one.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>
+      MIT licensed ·
+      <a href="https://github.com/bakhod1r/payme-mock">Source</a> ·
+      <a href="https://github.com/bakhod1r/payme-mock/blob/main/CONTRIBUTING.md">Contributing</a> ·
+      <a href="https://github.com/bakhod1r/payme-mock/issues">Issues</a>
+    </p>
+    <p>Not affiliated with Payme or Paycom.</p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,22 @@
+{{define "content"}}
+<h1>Errors</h1>
+<p class="sub">Every documented protocol error. Any of them can be pinned to a method on the <a href="/rules">rules</a> screen.</p>
+
+<div class="panel">
+  <h2>{{len .Errors}} error(s)</h2>
+  <div class="scroll">
+  <table>
+    <tr><th>Code</th><th>Slug</th><th>Scope</th><th>Message</th><th>Kind</th></tr>
+    {{range .Errors}}
+    <tr>
+      <td class="mono"><span class="tag bad">{{.Code}}</span></td>
+      <td class="mono">{{.Slug}}</td>
+      <td>{{.Scope}}</td>
+      <td>{{.Message}}</td>
+      <td>{{if .Builtin}}<span class="tag">documented</span>{{else}}<span class="tag">custom</span>{{end}}</td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+</div>
+{{end}}

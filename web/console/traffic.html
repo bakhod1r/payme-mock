@@ -1,0 +1,109 @@
+{{define "content"}}
+<h1>Traffic</h1>
+<p class="sub">Every request and response the stand handled, newest first. Open a row for the bodies.</p>
+
+{{if .Error}}<div class="err">{{.Error}}</div>{{end}}
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>{{len .Entries}} request(s)</h2>
+    <div class="rowactions">
+      <form method="get" action="/traffic" class="search">
+        <input type="hidden" name="sandbox" value="{{.TrafficFilter.Sandbox}}">
+        <input type="hidden" name="service" value="{{.TrafficFilter.Service}}">
+        <input type="hidden" name="result" value="{{.TrafficFilter.Result}}">
+        <input type="search" name="q" value="{{.Search}}" placeholder="method, address or anything in the body">
+        <button type="submit" class="ghost">Search</button>
+      </form>
+      {{if .TrafficFilter.Narrowed}}
+      {{if .TrafficFilter.Sandbox}}<span class="tag">{{.TrafficFilter.Sandbox}}</span>{{end}}
+      {{if .TrafficFilter.Service}}<span class="tag">{{.TrafficFilter.Service}}</span>{{end}}
+      {{if .TrafficFilter.Result}}<span class="tag">{{.TrafficFilter.Result}}</span>{{end}}
+      <a href="/traffic"><button type="button" class="ghost">Clear</button></a>
+      {{end}}
+      <button type="button" onclick="dialogFor('tr-filter')">Filter</button>
+    </div>
+  </div>
+  {{if .Entries}}
+  <div class="scroll">
+  <table>
+    <tr>
+      <th>At</th><th>Cashbox</th><th>Method</th>
+      <th>Status</th><th>Error</th><th class="num">Took</th><th></th>
+    </tr>
+    {{range .Entries}}
+    <tr class="row" data-href="/traffic/{{.ID}}">
+      <td class="mono">{{.At}}</td>
+      <td>{{.Sandbox}} <span class="opt">{{.Service}}</span></td>
+      <td class="mono">{{.Method}}</td>
+      <td>{{if .Failed}}<span class="tag bad">{{.Status}}</span>{{else}}<span class="tag ok">{{.Status}}</span>{{end}}</td>
+      <td>{{if .ErrorCode}}<span class="tag bad">{{.ErrorCode}}</span>{{else}}<span class="opt">—</span>{{end}}
+          {{if .Rule}}<span class="tag warn">{{.Rule}}</span>{{end}}</td>
+      <td class="mono num">{{.DurationMS}} ms</td>
+      <td class="actions-cell">
+        <button type="button" class="ghost" data-entry="{{.ID}}"
+                onclick="copyCurl(this)">curl</button>
+      </td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+  {{else}}
+  <p class="empty">Nothing matches. Requests show up here as they are handled.</p>
+  {{end}}
+{{if .Page.Rows}}
+<div class="pager">
+  {{if .Page.HasPrev}}<a href="{{.Page.PrevURL}}"><button type="button" class="ghost">← Newer</button></a>
+  {{else}}<button type="button" class="ghost" disabled>← Newer</button>{{end}}
+  <span class="opt">{{.Page.From}}–{{.Page.To}}</span>
+  {{if .Page.HasNext}}<a href="{{.Page.NextURL}}"><button type="button" class="ghost">Older →</button></a>
+  {{else}}<button type="button" class="ghost" disabled>Older →</button>{{end}}
+  <span class="sizes">
+    {{range .Page.Sizes}}<a href="{{.URL}}" {{if .On}}class="on"{{end}}>{{.Value}}</a>{{end}}
+    <span class="opt">per page</span>
+  </span>
+</div>
+{{end}}
+
+</div>
+
+<dialog id="tr-filter">
+  <h3>Filter traffic</h3>
+  <form method="get" action="/traffic" class="edit">
+    <div>
+      <label for="tr_sandbox">Sandbox</label>
+      <select id="tr_sandbox" name="sandbox">
+        <option value="">every sandbox</option>
+        {{$sandbox := .TrafficFilter.Sandbox}}
+        {{range .Sandboxes}}<option value="{{.Slug}}" {{if eq .Slug $sandbox}}selected{{end}}>{{.Slug}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="tr_service">Side</label>
+      <select id="tr_service" name="service">
+        <option value="">both sides</option>
+        {{$service := .TrafficFilter.Service}}
+        {{range .Services}}<option value="{{.}}" {{if eq . $service}}selected{{end}}>{{.}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="tr_result">Result</label>
+      <select id="tr_result" name="result">
+        <option value="">any result</option>
+        {{$result := .TrafficFilter.Result}}
+        {{range .Results}}<option value="{{.Value}}" {{if eq .Value $result}}selected{{end}}>{{.Label}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="tr_q">Method, address or anything in a body</label>
+      <input id="tr_q" name="q" value="{{.Search}}" placeholder="cards.create or 8600">
+    </div>
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit">Apply</button>
+    </div>
+  </form>
+</dialog>
+
+</div>
+{{end}}

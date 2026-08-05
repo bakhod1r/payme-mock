@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A second push to the same branch makes the first run's result irrelevant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and vet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.26'
+          cache: true
+
+      # gofmt is checked rather than applied: a formatting fix inside a review
+      # is noise, and the Makefile has `make fmt` for it.
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "these files need gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - run: go build ./...
+      - run: go vet ./...
+
+      # The playground is only ever built for the browser, so a change that
+      # breaks it compiles cleanly everywhere else and is noticed on the
+      # published site instead of here.
+      - name: build for WebAssembly
+        run: GOOS=js GOARCH=wasm go build -o /dev/null ./cmd/playground
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.26'
+          cache: true
+      # The action's major version is what picks the golangci-lint line: v9
+      # installs v2, which is what .golangci.yml is written against. The v1 line
+      # cannot read that config at all, so this is the version that matters and
+      # the golangci-lint version itself is left at the action's default.
+      - uses: golangci/golangci-lint-action@v9
+
+  test:
+    name: Tests and coverage gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.26'
+          cache: true
+
+      # The end-to-end tests bring up their own Postgres and Redis through
+      # testcontainers, so no service containers are declared here. The gate
+      # runs the whole suite: `make test-cover` also fails when a measured
+      # package produced no coverage data at all.
+      - name: make test-cover
+        run: make test-cover
+
+      - name: Upload coverage profile
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: cover.out
+          if-no-files-found: ignore

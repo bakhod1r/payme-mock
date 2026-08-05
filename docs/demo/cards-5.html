@@ -1,0 +1,844 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>444444******9073 · payme-mock console</title>
+<style>
+:root {
+  --bg: #0f1115; --panel: #171a21; --line: #262b36; --text: #e6e9ef;
+  --header-h: 52px;
+  --muted: #8b93a3; --accent: #4f8cff; --ok: #3ecf8e; --warn: #f0b429; --bad: #ff5c5c;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+ 
+header { position: sticky; top: 0; z-index: 30; height: var(--header-h);
+  display: flex; align-items: center; gap: 24px; padding: 0 24px;
+  border-bottom: 1px solid var(--line); background: var(--panel); }
+header .brand { font-weight: 700; letter-spacing: .3px; color: var(--text); }
+header .brand:hover { text-decoration: none; color: var(--accent); }
+header nav { display: flex; gap: 4px; }
+header nav a { color: var(--muted); padding: 6px 11px; border-radius: 7px; }
+header nav a:hover { color: var(--text); background: #1e222b; text-decoration: none; }
+header nav a.on { color: var(--text); background: #232838;
+  box-shadow: inset 0 -2px 0 var(--accent); }
+header .spacer { margin-left: auto; color: var(--muted); font-size: 13px; }
+main { padding: 28px 24px 64px; max-width: 1180px; margin: 0 auto; }
+h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -.2px; }
+.sub { color: var(--muted); margin: 0 0 22px; }
+.cards { display: grid; gap: 14px; margin-bottom: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; }
+.statlabel { color: var(--muted); font-size: 12px; text-transform: uppercase;
+  letter-spacing: .6px; }
+.statvalue { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 18px; margin-bottom: 20px; }
+.panel h2 { font-size: 14px; margin: 0 0 14px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .6px; }
+ 
+.panelhead { display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; margin-bottom: 14px; }
+.panelhead h2 { margin: 0; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line);
+  white-space: nowrap; }
+th { color: var(--muted); font-weight: 600; font-size: 11px;
+  text-transform: uppercase; letter-spacing: .5px; }
+ 
+tbody tr:hover td, table tr:hover td { background: #1c2029; }
+tr:last-child td { border-bottom: none; }
+ 
+td.num, th.num, .mono { font-variant-numeric: tabular-nums; }
+ 
+th.num, td.num { text-align: right; }
+ 
+td.actions-cell { width: 1%; }
+ 
+tr.row { cursor: pointer; }
+tr.row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px;
+  border: 1px solid var(--line); color: var(--muted); }
+.tag.ok { color: var(--ok); border-color: #1f5c43; }
+.tag.warn { color: var(--warn); border-color: #6b5317; }
+.tag.bad { color: var(--bad); border-color: #6b2626; }
+form.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+input, select { background: #0d0f14; border: 1px solid var(--line); color: var(--text);
+  border-radius: 7px; padding: 9px 11px; font: inherit; min-width: 200px; }
+input:focus, select:focus { outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79,140,255,.18); }
+input::placeholder { color: #5c6474; }
+button { background: var(--accent); border: none; color: #fff; border-radius: 7px;
+  padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer;
+  transition: background .12s, border-color .12s, color .12s; }
+button:hover { filter: brightness(1.1); }
+ 
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.ghost { background: transparent; border: 1px solid var(--line); color: var(--text);
+  font-weight: 500; }
+button.ghost:hover { filter: none; background: #232838; border-color: #39404f; }
+ 
+.rowactions button { padding: 5px 10px; font-size: 12px; }
+.err { background: #2a1618; border: 1px solid #6b2626; color: #ffb4b4;
+  padding: 10px 13px; border-radius: 8px; margin-bottom: 16px; }
+ 
+.ok-note { background: #12241c; border: 1px solid #1f5c43; color: #9ae6c4;
+  padding: 10px 13px; border-radius: 8px; margin-bottom: 16px; }
+.empty { color: var(--muted); padding: 22px 2px; text-align: center; }
+
+ 
+
+ 
+.propbar { display: flex; gap: 2px; height: 12px; border-radius: 6px;
+  overflow: hidden; background: var(--bg); }
+.propseg { display: block; height: 100%; border-radius: 3px; min-width: 3px; }
+ 
+.propbar.mini { height: 8px; width: 120px; display: inline-flex; vertical-align: middle; }
+
+ 
+.legend { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 20px;
+  margin: 14px 0 0; padding: 0; font-size: 13px; }
+.legend li { display: flex; align-items: center; gap: 7px; }
+.legend .swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+
+.barchart { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.barchart li { display: grid; grid-template-columns: minmax(0, 13em) 1fr 3.5em;
+  align-items: center; gap: 12px; }
+.barlabel { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bartrack { background: var(--bg); border-radius: 5px; height: 10px; }
+ 
+.barfill { display: block; height: 100%; min-width: 3px;
+  background: var(--accent); border-radius: 2px 5px 5px 2px; }
+.barvalue { color: var(--muted); text-align: right; font-size: 12px; }
+.login { max-width: 360px; margin: 12vh auto; }
+.login .panel { padding: 26px; }
+.login input { width: 100%; }
+.login button { width: 100%; margin-top: 6px; }
+.login .brand { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.login .sub { margin-bottom: 22px; }
+.stack > * + * { margin-top: 14px; }
+.bodies { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+@media (max-width: 820px) { .bodies { grid-template-columns: 1fr; } }
+ 
+.bodies > * { min-width: 0; }
+.bodies pre { background: #0d0f14; border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px 12px; margin: 0; overflow-x: auto; font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); }
+details summary::marker { color: var(--muted); }
+.bodylabel { color: var(--muted); font-size: 11px; text-transform: uppercase;
+  letter-spacing: .6px; margin-bottom: 5px; }
+.bodies pre { max-height: 380px; overflow: auto; white-space: pre; max-width: 100%; }
+.menu { position: relative; }
+.menu > summary { list-style: none; cursor: pointer; padding: 4px 10px; border-radius: 7px;
+  border: 1px solid var(--line); color: var(--muted); display: inline-block; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu[open] > summary { border-color: var(--accent); color: var(--text); }
+.menu-body { position: absolute; right: 0; top: 110%; z-index: 20; width: 280px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 12px; display: flex; flex-direction: column; gap: 8px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.5); }
+.menu-body form { display: flex; gap: 6px; }
+.menu-body input, .menu-body select { min-width: 0; flex: 1; padding: 7px 9px; }
+.menu-body button { white-space: nowrap; }
+.menu-body hr { border: none; border-top: 1px solid var(--line); margin: 2px 0; width: 100%; }
+ 
+.menu.up .menu-body { top: auto; bottom: 110%; }
+button.danger { color: var(--bad); border-color: #6b2626; }
+button.danger:hover { background: #2a1618; border-color: var(--bad); }
+ 
+.rowactions .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 2px; }
+dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line);
+  border-radius: 12px; padding: 22px; max-width: 720px; width: 92vw; }
+dialog::backdrop { background: rgba(0,0,0,.6); }
+dialog h3 { margin: 0 0 14px; font-size: 16px; }
+dialog dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; margin: 0; }
+dialog dt { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+dialog dd { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px; word-break: break-all; }
+ 
+ 
+dd.copy, dl.facts dd.copy { user-select: all; cursor: copy; position: relative;
+  display: inline-flex; align-items: center; gap: 8px; }
+dd.copy::after { content: "copy"; font-family: ui-sans-serif, -apple-system, sans-serif;
+  font-size: 10px; letter-spacing: .5px; text-transform: uppercase; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; }
+dd.copy:hover::after { color: var(--text); border-color: #39404f; }
+dd.copy.copied::after { content: "copied"; color: var(--ok); border-color: #1f5c43; }
+dialog .close { margin-top: 18px; }
+ 
+dialog form.edit { display: grid; gap: 14px; }
+dialog form.edit label { margin-bottom: 5px; }
+dialog form.edit input, dialog form.edit select { width: 100%; }
+dialog .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
+dialog .section { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 4px; }
+dialog .section h4 { margin: 0 0 12px; font-size: 12px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .6px; }
+dialog .inline { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 10px; }
+dialog .inline > div { flex: 1; }
+dialog .hint { color: var(--muted); font-size: 12px; margin: -6px 0 0; }
+ 
+pre.curl { background: #0f131c; border: 1px solid var(--line); border-radius: 8px;
+  padding: 12px 14px; overflow-x: auto; max-width: 100%; font-size: 12px;
+  line-height: 1.6; margin: 0; }
+ 
+.gen { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: -8px 0 0; }
+.gen .opt { font-size: 12px; }
+.gen button { padding: 4px 9px; font-size: 12px; }
+ 
+.opt { color: #5c6474; font-weight: 400; text-transform: none; }
+ 
+.facts dd, td .copy, dialog dd { overflow-wrap: anywhere; }
+.rowactions { display: flex; gap: 8px; align-items: center; }
+.rowactions a { text-decoration: none; }
+ 
+dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; margin: 0; }
+dl.facts dt { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+dl.facts dd { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px; word-break: break-all; }
+dl.facts dd.result { font-weight: 700; }
+dl.facts dd.short { color: var(--bad); }
+ 
+.tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+.tabs a { color: var(--muted); padding: 9px 14px; border-radius: 8px 8px 0 0;
+  border: 1px solid transparent; border-bottom: none; margin-bottom: -1px; }
+.tabs a:hover { color: var(--text); background: #1e222b; text-decoration: none; }
+.tabs a.on { color: var(--text); background: var(--panel); border-color: var(--line);
+  box-shadow: inset 0 2px 0 var(--accent); }
+.tabs .count { color: var(--muted); font-size: 11px; margin-left: 6px;
+  font-variant-numeric: tabular-nums; }
+ 
+ 
+.panel.live { border-left: 2px solid var(--accent); }
+ 
+details.fold > summary { list-style: none; cursor: pointer; display: flex;
+  align-items: center; gap: 10px; }
+details.fold > summary::-webkit-details-marker { display: none; }
+ 
+details.fold > summary::before { content: ""; width: 0; height: 0;
+  border-left: 5px solid var(--muted); border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent; transition: transform .12s; }
+details.fold[open] > summary::before { transform: rotate(90deg); }
+details.fold > summary .foldtitle { font-size: 14px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .6px; font-weight: 600; }
+details.fold > summary .count { color: var(--muted); font-size: 11px;
+  border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px;
+  font-variant-numeric: tabular-nums; }
+details.fold > summary:hover .foldtitle { color: var(--text); }
+.foldbody { margin-top: 14px; }
+.foldtools { justify-content: flex-end; margin-bottom: 12px; }
+ 
+table.inner { width: auto; font-size: 12px; margin: -4px 0; }
+table.inner th, table.inner td { padding: 3px 14px 3px 0; border: none;
+  vertical-align: top; }
+table.inner th { color: var(--muted); font-weight: 500; text-transform: none;
+  letter-spacing: 0; font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+table.inner td { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+table.inner tr:hover td, table.inner tr:hover th { background: none; }
+ 
+table.inner td.copy { user-select: all; cursor: copy; }
+form.search { display: flex; gap: 6px; align-items: center; }
+form.search input { min-width: 220px; padding: 5px 10px; font-size: 13px; }
+form.search button { padding: 5px 10px; font-size: 12px; }
+ 
+.pager { display: flex; align-items: center; justify-content: center; gap: 14px;
+  margin-top: 16px; }
+.pager button[disabled] { opacity: .35; cursor: default; }
+.pager button[disabled]:hover { background: transparent; border-color: var(--line); }
+ 
+.pager .sizes { display: flex; align-items: center; gap: 8px; margin-left: 8px;
+  padding-left: 16px; border-left: 1px solid var(--line); }
+.pager .sizes a { color: var(--muted); font-size: 12px;
+  font-variant-numeric: tabular-nums; }
+.pager .sizes a:hover { color: var(--text); text-decoration: none; }
+.pager .sizes a.on { color: var(--text); font-weight: 600; }
+.filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+<div style="position:sticky;top:0;z-index:999;background:#1d2b3a;color:#cfe3ff;
+     border-bottom:1px solid #2f4b6d;padding:9px 24px;font:13px/1.5 ui-sans-serif,
+     -apple-system,'Segoe UI',Roboto,sans-serif;text-align:center">
+  <strong>Static snapshot</strong> of the payme-mock console, captured from a real
+  running stand. Links and filters work; anything that would change something is
+  inert &mdash;
+  <a href="https://github.com/bakhod1r/payme-mock" style="color:#7ab7ff">run it locally</a>
+  for the working console.
+</div>
+<style>
+  /* The console never styles a disabled control, because it never has one: on
+     the stand every button does something. Here they are the exception that has
+     to read as one, or a blue Add button that ignores the click looks broken
+     rather than inert. */
+  [disabled] { opacity: .45; cursor: not-allowed; filter: grayscale(.6); }
+</style>
+
+
+<header>
+  <a href="index.html" class="brand">payme-mock</a>
+  <nav>
+    <a href="index.html" >Dashboard</a>
+    <a href="sandboxes.html" >Cashboxes</a>
+    <a href="rules.html" >Rules</a>
+    <a href="cards.html" class="on">Cards</a>
+    <a href="payments.html" >Payments</a>
+    <a href="traffic.html" >Traffic</a>
+  </nav>
+  <span class="spacer">localhost</span>
+  <form onsubmit="return false" data-inert="1"><button class="ghost" disabled title="Inert in the snapshot">Log out</button></form>
+</header>
+
+<main>
+
+<h1>444444******9073</h1>
+<p class="sub"><a href="cards--tab-mocks.html">← mock cards</a> · example-topup · uzcard</p>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>Card</h2>
+    <div class="rowactions">
+      
+      <button type="button" onclick="dialogFor('card-edit')">Edit</button>
+      
+      <form onsubmit="return false" data-inert="1">
+        <input type="hidden" name="back" value="/cards/5">
+        
+        <button class="ghost" type="submit" disabled title="Inert in the snapshot">Release</button>
+        
+      </form>
+      
+      <span class="sep"></span>
+      <form onsubmit="return false" data-inert="1">
+        <button class="ghost danger" disabled title="Inert in the snapshot">Delete</button>
+      </form>
+      
+    </div>
+  </div>
+  
+  <dl class="facts">
+    <dt>Row id</dt><dd>5</dd>
+    <dt>Added</dt>
+    <dd>a mock, added from the console · 2026-08-05 16:56:31</dd>
+    <dt>Registered</dt>
+    <dd>the register tokenized it · 2026-08-05 16:56:36</dd>
+    <dt>Sandbox</dt><dd>example-topup</dd>
+    <dt>Token</dt><dd class="copy">6O6I9Mc17ICPhwM5mNFRfyiWB86HHcZjDxcI0SUFnaUmYn9ijHFydJOFCWZPwEIg</dd>
+    <dt>Number</dt><dd class="copy">4444445987459073</dd>
+    <dt>Expiry</dt><dd>03/99</dd>
+    <dt>OTP</dt>
+    <dd><span class="copy">666666</span> ·
+      the stand's shared code, which every card added here takes
+      </dd>
+    <dt>System</dt><dd>uzcard</dd>
+    <dt>Behaviour</dt>
+    <dd class="result short">blocked</dd>
+    <dt>SMS</dt><dd>enabled</dd>
+    <dt>Balance</dt>
+    <dd>10 000 000.00 UZS <span class="opt">(1000000000 tiyin)</span></dd>
+    <dt>Stall</dt><dd>none</dd>
+    <dt>Verified</dt><dd>yes</dd>
+    <dt>Recurrent</dt><dd>yes</dd>
+    <dt>Removed</dt><dd>no</dd>
+    <dt>Phone</dt><dd>&#43;998901234567</dd>
+    <dt>Saved for</dt>
+    <dd>—</dd>
+  </dl>
+</div>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>3 cashbox(es)</h2>
+    <span class="opt">a card belongs to the merchant, so every register of it can charge the card
+      unless it is taken off one — each register holds its own token for it</span>
+  </div>
+  
+  <div class="scroll">
+  <table>
+    <tr><th>Cashbox</th><th>Kind</th><th>Token</th><th class="num">Payments</th><th>Usable</th><th></th></tr>
+    
+    <tr>
+      <td><a href="sandboxes-1.html">example-topup</a> <span class="opt">added here</span></td>
+      <td><span class="tag">topup</span></td>
+      <td><span class="copy mono">6O6I9Mc17ICPhwM5mNFRfyiWB86HHcZjDxcI0SUFnaUmYn9ijHFydJOFCWZPwEIg</span></td>
+      <td class="mono num">0</td>
+      <td><span class="tag ok">yes</span></td>
+      <td>
+        <form onsubmit="return false" data-inert="1">
+          <input type="hidden" name="sandbox_id" value="1">
+          <input type="hidden" name="back" value="/cards/5">
+          
+          <input type="hidden" name="blocked" value="1">
+          <button class="ghost danger" type="submit" disabled title="Inert in the snapshot">Take off</button>
+          
+        </form>
+      </td>
+    </tr>
+    
+    <tr>
+      <td><a href="sandboxes-2.html">example-deposit</a></td>
+      <td><span class="tag">deposit</span></td>
+      <td><span class="opt">not tokenized here yet</span></td>
+      <td class="mono num">0</td>
+      <td><span class="tag ok">yes</span></td>
+      <td>
+        <form onsubmit="return false" data-inert="1">
+          <input type="hidden" name="sandbox_id" value="2">
+          <input type="hidden" name="back" value="/cards/5">
+          
+          <input type="hidden" name="blocked" value="1">
+          <button class="ghost danger" type="submit" disabled title="Inert in the snapshot">Take off</button>
+          
+        </form>
+      </td>
+    </tr>
+    
+    <tr>
+      <td><a href="sandboxes-3.html">example-dividend</a></td>
+      <td><span class="tag">dividend</span></td>
+      <td><span class="opt">not tokenized here yet</span></td>
+      <td class="mono num">0</td>
+      <td><span class="tag ok">yes</span></td>
+      <td>
+        <form onsubmit="return false" data-inert="1">
+          <input type="hidden" name="sandbox_id" value="3">
+          <input type="hidden" name="back" value="/cards/5">
+          
+          <input type="hidden" name="blocked" value="1">
+          <button class="ghost danger" type="submit" disabled title="Inert in the snapshot">Take off</button>
+          
+        </form>
+      </td>
+    </tr>
+    
+  </table>
+  </div>
+  
+</div>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>What this card has been through</h2>
+    <span class="tag">3 call(s) named it</span>
+  </div>
+  
+  <dl class="facts">
+    <dt>Calls</dt>
+    <dd>3 logged call(s) carried this token · last 2026-08-05 16:56:36</dd>
+    <dt>Payments</dt>
+    <dd>0 charged the card · 0 paid it</dd>
+    <dt>Ended</dt>
+    <dd>0 paid · 0 cancelled
+      <span class="opt">a receipt still on its way is in neither</span></dd>
+    <dt>Taken off</dt><dd>0.00 UZS</dd>
+    <dt>Put on</dt><dd>0.00 UZS</dd>
+  </dl>
+  
+</div>
+
+
+
+
+<dialog id="card-edit"><p class="snapshot-note" style="margin:0 0 14px;padding:9px 12px;border-radius:8px;background:#1d2b3a;border:1px solid #2f4b6d;color:#cfe3ff;font-size:12.5px">Fill it in and look around — this is the real form. It cannot be submitted in the snapshot, because there is no stand behind it.</p>
+  <h3>Edit card 5</h3>
+  <form onsubmit="return false" data-inert="1">
+    <input type="hidden" name="back" value="/cards/5">
+    <div>
+      <label for="outcome">Behaviour</label>
+      <select id="outcome" name="outcome">
+        
+        <option value="success" >success</option><option value="insufficient_funds" >insufficient funds</option><option value="blocked" selected>blocked</option><option value="expired" >expired</option><option value="verify_failed" >verification fails</option><option value="system_error" >system error</option>
+      </select>
+    </div>
+    <p class="hint">A refused card answers -31008 with its own reason; a system error answers -32400.
+    The number and the token stay as they are, so a stored token keeps standing for this card.</p>
+    <div class="inline">
+      <div>
+        <label for="balance">Balance (tiyin)</label>
+        <input id="balance" name="balance" type="number" min="0" value="1000000000">
+      </div>
+      <div>
+        <label for="delay">Stall (seconds)</label>
+        <input id="delay" name="delay" type="number" min="0" step="0.1" value="0">
+      </div>
+    </div>
+    <div>
+      <label for="phone">Phone <span class="opt">optional</span></label>
+      <input id="phone" name="phone" value="&#43;998901234567">
+    </div>
+    <div>
+      <label><input type="checkbox" name="verify" value="1" checked style="min-width:0"> Verified</label>
+      <label><input type="checkbox" name="recurrent" value="1" checked style="min-width:0"> Recurrent</label>
+      <label><input type="checkbox" name="sms_enabled" value="1" checked style="min-width:0"> SMS enabled</label>
+      <label><input type="checkbox" name="frozen" value="1"  style="min-width:0"> Frozen balance</label>
+    </div>
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit" disabled title="Inert in the snapshot">Save</button>
+    </div>
+  </form>
+</dialog>
+
+
+</main>
+<script>
+
+
+function dialogFor(id) {
+  var dialog = document.getElementById(id);
+  if (!dialog) { return; }
+  dialog.showModal();
+
+  
+  
+  var first = dialog.querySelector('input:not([type=hidden]), select, textarea');
+  if (first) { first.focus(); }
+}
+
+
+
+
+
+
+function copyCurl(button) {
+  var ready = button.getAttribute('data-curl');
+  if (ready) { writeClipboard(button, ready); return; }
+
+  fetch('/traffic/' + button.getAttribute('data-entry') + '/curl')
+    .then(function (response) { return response.ok ? response.text() : Promise.reject(); })
+    .then(function (text) { writeClipboard(button, text); })
+    .catch(function () { flash(button, 'could not read it'); });
+}
+
+
+
+function writeClipboard(button, text) {
+  var done = function () { flash(button, 'copied'); };
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text, button, done); });
+    return;
+  }
+
+  fallbackCopy(text, button, done);
+}
+
+
+
+function fallbackCopy(text, button, done) {
+  var area = document.createElement('textarea');
+  area.value = text;
+  area.setAttribute('readonly', '');
+  area.style.position = 'fixed';
+  area.style.opacity = '0';
+  document.body.appendChild(area);
+  area.select();
+
+  var ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+
+  document.body.removeChild(area);
+
+  if (ok) { done(); return; }
+  flash(button, 'copy it by hand');
+}
+
+function flash(button, message) {
+  var was = button.textContent;
+  button.textContent = message;
+  button.disabled = true;
+
+  setTimeout(function () {
+    button.textContent = was;
+    button.disabled = false;
+  }, 1200);
+}
+
+
+
+
+
+
+
+
+
+
+
+var pressedOn = null;
+document.addEventListener('mousedown', function (event) { pressedOn = event.target; });
+
+document.addEventListener('click', function (event) {
+  if (event.target.tagName !== 'DIALOG') { return; }
+
+  
+  
+  
+  if (pressedOn !== event.target) { return; }
+
+  event.target.close();
+});
+
+
+
+
+document.addEventListener('toggle', function (event) {
+  var menu = event.target;
+  if (!menu.classList || !menu.classList.contains('menu')) { return; }
+
+  if (!menu.open) {
+    menu.classList.remove('up');
+    return;
+  }
+
+  
+  
+  document.querySelectorAll('details.menu[open]').forEach(function (other) {
+    if (other !== menu) { other.open = false; }
+  });
+
+  var body = menu.querySelector('.menu-body');
+  if (!body) { return; }
+
+  var anchor = menu.getBoundingClientRect();
+  var needed = body.offsetHeight + 12;
+
+  
+  
+  var below = window.innerHeight - anchor.bottom;
+  menu.classList.toggle('up', below < needed && anchor.top > below);
+}, true);
+
+
+
+
+
+
+
+document.addEventListener('click', function (event) {
+  var row = event.target.closest ? event.target.closest('tr.row') : null;
+  if (!row) { return; }
+
+  if (event.target.closest('a, button, form, input, select, label, details, .copy')) { return; }
+
+  
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) {
+    window.open(row.dataset.href, '_blank');
+    return;
+  }
+
+  window.location = row.dataset.href;
+});
+
+
+
+
+document.querySelectorAll('tr.row').forEach(function (row) {
+  row.tabIndex = 0;
+  row.setAttribute('role', 'link');
+});
+
+document.addEventListener('keydown', function (event) {
+  if (event.key !== 'Enter') { return; }
+
+  var row = event.target.closest ? event.target.closest('tr.row') : null;
+  if (!row || event.target !== row) { return; }
+
+  window.location = row.dataset.href;
+});
+
+
+
+document.querySelectorAll('details.fold').forEach(function (fold) {
+  var key = 'fold:' + fold.dataset.fold;
+
+  if (sessionStorage.getItem(key) === 'shut') { fold.open = false; }
+
+  fold.addEventListener('toggle', function () {
+    sessionStorage.setItem(key, fold.open ? 'open' : 'shut');
+  });
+});
+
+
+
+
+
+
+
+
+
+
+
+
+function busy() {
+  if (document.hidden) { return true; }
+  if (document.querySelector('dialog[open]')) { return true; }
+
+  var focused = document.activeElement;
+  if (focused && /^(INPUT|SELECT|TEXTAREA)$/.test(focused.tagName)) { return true; }
+  if (focused && focused.isContentEditable) { return true; }
+
+  var selection = window.getSelection();
+  if (selection && String(selection).length > 0) { return true; }
+
+  return false;
+}
+
+(function () {
+  var box = document.getElementById('live-refresh');
+  if (!box) { return; }
+
+  
+  
+  box.checked = sessionStorage.getItem('live-refresh') !== 'off';
+
+  var timer = null;
+
+  function start() {
+    timer = setInterval(function () {
+      
+      if (!box.checked || busy()) { return; }
+      window.location.reload();
+    }, 5000);
+  }
+
+  box.addEventListener('change', function () {
+    sessionStorage.setItem('live-refresh', box.checked ? 'on' : 'off');
+    if (!box.checked) { clearInterval(timer); timer = null; return; }
+    if (!timer) { start(); }
+  });
+
+  if (box.checked) { start(); }
+})();
+
+
+
+document.addEventListener('click', function (event) {
+  var field = event.target.closest ? event.target.closest('.copy') : null;
+  if (!field) { return; }
+
+  var text = field.textContent.trim();
+  var done = function () {
+    field.classList.add('copied');
+    setTimeout(function () { field.classList.remove('copied'); }, 1200);
+  };
+
+  
+  
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(done, function () { legacyCopy(text, done); });
+    return;
+  }
+  legacyCopy(text, done);
+});
+
+function legacyCopy(text, done) {
+  var area = document.createElement('textarea');
+  area.value = text;
+  area.setAttribute('readonly', '');
+  area.style.position = 'fixed';
+  area.style.opacity = '0';
+  document.body.appendChild(area);
+  area.select();
+  try { document.execCommand('copy'); done(); } catch (err) {   }
+  document.body.removeChild(area);
+}
+
+
+
+function formatSum(tiyin) {
+  var negative = tiyin < 0;
+  var abs = Math.abs(tiyin);
+  var whole = String(Math.floor(abs / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  var cents = String(abs % 100).padStart(2, '0');
+  return (negative ? '-' : '') + whole + '.' + cents;
+}
+
+
+
+document.addEventListener('input', balanceResult);
+document.addEventListener('change', balanceResult);
+
+function balanceResult(event) {
+  var form = event.target.closest ? event.target.closest('.balanceform') : null;
+  if (!form) { return; }
+
+  
+  var current = parseInt(form.dataset.balance, 10) || 0;
+  var amount = parseInt(form.querySelector('[name=amount]').value, 10) || 0;
+  var result = current + amount;
+
+  var field = form.querySelector('.result');
+  field.textContent = formatSum(result);
+  
+  
+  field.classList.toggle('short', result < 0);
+}
+</script>
+
+<script>
+(function () {
+  var pages = ["cards--outcome-blocked.html", "cards--outcome-expired.html", "cards--outcome-failing.html", "cards--outcome-insufficient_funds.html", "cards--outcome-success.html", "cards--outcome-system_error.html", "cards--outcome-verify_failed.html", "cards--per-100.html", "cards--per-200.html", "cards--per-25.html", "cards--sandbox-example-deposit.html", "cards--sandbox-example-dividend.html", "cards--sandbox-example-topup.html", "cards--sort-largest.html", "cards--sort-newest.html", "cards--sort-oldest.html", "cards--tab-cashbox.html", "cards--tab-mocks.html", "cards--window-1.html", "cards--window-15.html", "cards--window-3.html", "cards--window-5.html", "cards--window-60.html", "cards-1.html", "cards-10.html", "cards-2.html", "cards-3.html", "cards-4.html", "cards-5.html", "cards-6.html", "cards-7.html", "cards-8.html", "cards-9.html", "cards.html", "index.html", "index.html", "payments--per-100.html", "payments--per-200.html", "payments--per-25.html", "payments--sandbox-example-deposit.html", "payments--sandbox-example-dividend.html", "payments--sandbox-example-topup.html", "payments--sort-largest.html", "payments--sort-newest.html", "payments--sort-oldest.html", "payments--state-done.html", "payments--state-failed.html", "payments--state-open.html", "payments--way-merchant.html", "payments--way-payment.html", "payments--way-payout.html", "payments.html", "receipts-1.html", "receipts-10.html", "receipts-11.html", "receipts-12.html", "receipts-13.html", "receipts-14.html", "receipts-15.html", "receipts-16.html", "receipts-17.html", "receipts-18.html", "receipts-19.html", "receipts-2.html", "receipts-20.html", "receipts-3.html", "receipts-4.html", "receipts-5.html", "receipts-6.html", "receipts-7.html", "receipts-8.html", "receipts-9.html", "rules-12.html", "rules-13.html", "rules-14.html", "rules-15.html", "rules-16.html", "rules-17.html", "rules.html", "sandboxes-1.html", "sandboxes-2.html", "sandboxes-3.html", "sandboxes.html", "traffic--page-2.html", "traffic--per-100.html", "traffic--per-200.html", "traffic--per-25.html", "traffic--result-errors.html", "traffic--result-failed.html", "traffic--result-ok.html", "traffic--sandbox-example-deposit.html", "traffic--sandbox-example-dividend.html", "traffic--sandbox-example-topup.html", "traffic--service-merchant.html", "traffic--service-paymemock.html", "traffic-126.html", "traffic-127.html", "traffic-81.html", "traffic-83.html", "traffic-84.html", "traffic-87.html", "traffic-89.html", "traffic-90.html", "traffic.html", "transactions-1.html", "transactions-11.html", "transactions-13.html", "transactions-15.html", "transactions-2.html", "transactions-3.html", "transactions-4.html", "transactions-5.html", "transactions-6.html", "transactions-7.html", "transactions-8.html", "transactions-9.html"];
+  var defaults = {"sandbox": "", "way": "", "state": "", "sort": "newest", "window": "3", "tab": "mocks", "outcome": "", "q": "", "service": "", "result": ""};
+  function navigate(form) {
+    var stem = (form.getAttribute('action') || '').replace(/^\/|\/$/g, '') || 'index';
+    if (stem === 'dashboard') stem = 'index';
+    stem = stem.replace(/\//g, '-');
+
+    var pairs = [];
+    new FormData(form).forEach(function (value, key) {
+      if (value !== '') pairs.push([key, value]);
+    });
+    pairs.sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; });
+
+    function nameFor(list) {
+      if (!list.length) return stem;
+      return stem + '--' + list.map(function (p) { return p[0] + '-' + p[1]; })
+        .join('-').replace(/[^A-Za-z0-9._-]+/g, '_');
+    }
+
+    // Candidates, most specific first: everything submitted; then the same
+    // without the controls sitting at their default, which is what the reader
+    // actually chose; then each chosen filter alone, since the snapshot holds
+    // one filter at a time; then the bare screen.
+    var chosen = pairs.filter(function (p) { return defaults[p[0]] !== p[1]; });
+    var tries = [nameFor(pairs), nameFor(chosen)];
+    chosen.forEach(function (p) { tries.push(nameFor([p])); });
+    tries.push(stem);
+
+    for (var i = 0; i < tries.length; i++) {
+      if (pages.indexOf(tries[i] + '.html') >= 0) {
+        location.href = tries[i] + '.html';
+        return;
+      }
+    }
+    location.href = stem + '.html';
+  }
+
+  document.addEventListener('submit', function (e) {
+    if (!e.target.matches('form[method="get"]')) return;
+    e.preventDefault();
+    navigate(e.target);
+  });
+
+  // A form submitted from script fires no submit event at all, so the listener
+  // above never sees it and the browser leaves for a path this host does not
+  // have. The console does exactly that when a filter select changes, so the
+  // method itself is routed through the same mapping.
+  var nativeSubmit = HTMLFormElement.prototype.submit;
+  HTMLFormElement.prototype.submit = function () {
+    if (this.getAttribute('method') === 'get') { navigate(this); return; }
+    // A POST form has nothing here to submit to; doing nothing is the honest
+    // answer, and nativeSubmit is kept so the intent stays readable.
+    void nativeSubmit;
+  };
+})();
+</script>
+</body>
+</html>
