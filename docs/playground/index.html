@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Playground · payme-mock</title>
+<meta name="description" content="The Subscribe API running in your browser: the real payme-mock service compiled to WebAssembly, with no server behind it.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='14'>🧪</text></svg>">
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --line: #262b36; --text: #e6e9ef;
+    --muted: #8b93a3; --accent: #4f8cff;
+    --ok: #22a074; --warn: #ad8c00; --bad: #e04566;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.55 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--accent); }
+  code, pre, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+  header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center;
+    gap: 20px; padding: 0 24px; height: 52px; background: var(--panel);
+    border-bottom: 1px solid var(--line); }
+  header .brand { font-weight: 700; }
+  header nav { display: flex; gap: 4px; }
+  header nav a { color: var(--muted); padding: 6px 11px; border-radius: 7px; text-decoration: none; }
+  header nav a:hover { color: var(--text); background: #1e222b; }
+  header nav a.on { color: var(--text); background: #232838; box-shadow: inset 0 -2px 0 var(--accent); }
+  header .spacer { margin-left: auto; }
+
+  main { padding: 26px 24px 72px; max-width: 1180px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; max-width: 74ch; }
+
+  .note { background: #1d2b3a; border: 1px solid #2f4b6d; color: #cfe3ff;
+    padding: 11px 14px; border-radius: 9px; margin-bottom: 20px; font-size: 13px; }
+  .note strong { color: #fff; }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+  .panel { background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 18px; }
+  .panel h2 { font-size: 13px; margin: 0 0 13px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .5px; }
+
+  .recipes { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
+  button { font: inherit; cursor: pointer; border-radius: 7px; padding: 7px 12px;
+    border: 1px solid var(--line); background: #1e222b; color: var(--text); }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #08111f; font-weight: 600; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+
+  textarea { width: 100%; min-height: 190px; resize: vertical; background: var(--bg);
+    color: var(--text); border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+  label.field { display: block; margin-bottom: 12px; }
+  label.field span { display: block; color: var(--muted); font-size: 12px;
+    text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  select { background: var(--bg); color: var(--text); border: 1px solid var(--line);
+    border-radius: 7px; padding: 7px 10px; font: inherit; }
+
+  pre { background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px; overflow-x: auto; font-size: 12.5px; margin: 0; max-height: 460px; }
+
+  .facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0 0 14px; }
+  .facts dt { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  .facts dd { margin: 0; font-family: ui-monospace, Menlo, monospace; overflow-wrap: anywhere; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: 11px;
+    text-transform: uppercase; letter-spacing: .5px; }
+  .tag { display: inline-block; padding: 1px 7px; border-radius: 20px; font-size: 11px;
+    border: 1px solid var(--line); }
+  .tag.ok { color: var(--ok); border-color: var(--ok); }
+  .tag.bad { color: var(--bad); border-color: var(--bad); }
+  .tag.warn { color: var(--warn); border-color: var(--warn); }
+  .empty { color: var(--muted); padding: 14px 2px; text-align: center; }
+  .status { color: var(--muted); font-size: 12.5px; }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="brand" href="../">payme-mock</a>
+  <nav>
+    <a href="../">Overview</a>
+    <a href="../demo/">Console</a>
+    <a class="on" href="./">Playground</a>
+  </nav>
+  <span class="spacer"></span>
+  <a href="https://github.com/bakhod1r/payme-mock">GitHub</a>
+</header>
+
+<main>
+  <h1>Playground</h1>
+  <p class="sub">
+    The Subscribe API, running in this tab. It is the same Go service the stand runs —
+    the same domain, the same JSON-RPC handler — compiled to WebAssembly and wired to
+    memory instead of Postgres. Nothing is sent anywhere.
+  </p>
+
+  <div class="note">
+    <strong>What this is not:</strong> there is no merchant behind it, so the Merchant API
+    chain is accepted rather than really driven; there is no worker, so a payment settles
+    at once instead of walking its states; and there is no database, so a reload starts over.
+    Everything else is the real thing — including which methods the browser credential is
+    allowed to call.
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Request</h2>
+
+      <div class="recipes" id="recipes"></div>
+
+      <label class="field">
+        <span>X-Auth</span>
+        <select id="auth">
+          <option value="id">merchant id only — what a browser sends</option>
+          <option value="idkey">merchant id and key — what a backend sends</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>JSON-RPC body</span>
+        <textarea id="body" spellcheck="false"></textarea>
+      </label>
+
+      <div class="recipes">
+        <button class="primary" id="send" disabled>Send</button>
+        <button id="reset" disabled>Reset the stand</button>
+        <span class="status" id="status">loading the WebAssembly build…</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Answer</h2>
+      <pre id="answer">—</pre>
+    </div>
+  </div>
+
+  <div class="grid" style="margin-top: 18px;">
+    <div class="panel">
+      <h2>What the stand holds</h2>
+      <dl class="facts">
+        <dt>Balance</dt><dd id="balance">—</dd>
+        <dt>Merchant</dt><dd id="merchantid">—</dd>
+        <dt>Key</dt><dd id="testkey">—</dd>
+      </dl>
+      <table>
+        <thead><tr><th>Card</th><th>Outcome</th><th>Verified</th></tr></thead>
+        <tbody id="cards"><tr><td colspan="3" class="empty">No cards yet.</td></tr></tbody>
+      </table>
+      <table style="margin-top: 14px;">
+        <thead><tr><th>Receipt</th><th>Amount</th><th>State</th></tr></thead>
+        <tbody id="receipts"><tr><td colspan="3" class="empty">No receipts yet.</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>Side effects</h2>
+      <dl class="facts">
+        <dt>SMS</dt><dd id="sms">nothing sent</dd>
+        <dt>Webhooks</dt><dd id="webhooks">none</dd>
+      </dl>
+      <p class="status">
+        The OTP is <code>666666</code>. Every message the stand would have sent is kept
+        here instead, which is what lets a verification be rehearsed without a phone.
+      </p>
+    </div>
+  </div>
+</main>
+
+<script src="wasm_exec.js"></script>
+<script>
+(function () {
+  var el = function (id) { return document.getElementById(id); };
+  var creds = { merchantID: '', testKey: '' };
+
+  // The recipes are the protocol's own order: register a card, ask for the
+  // code, verify it, open a receipt, pay it. Each one fills the body rather
+  // than firing, so the reader can change it before sending.
+  var recipes = [
+    ['cards.create', { jsonrpc: '2.0', id: 1, method: 'cards.create',
+      params: { card: { number: '8600123456789012', expire: '1226' }, save: true } }],
+    ['cards.get_verify_code', { jsonrpc: '2.0', id: 2, method: 'cards.get_verify_code',
+      params: { token: 'PASTE_A_TOKEN' } }],
+    ['cards.verify', { jsonrpc: '2.0', id: 3, method: 'cards.verify',
+      params: { token: 'PASTE_A_TOKEN', code: '666666' } }],
+    ['receipts.create', { jsonrpc: '2.0', id: 4, method: 'receipts.create',
+      params: { amount: 500000, account: { order_id: '1001' } } }],
+    ['receipts.pay', { jsonrpc: '2.0', id: 5, method: 'receipts.pay',
+      params: { id: 'PASTE_A_RECEIPT_ID', token: 'PASTE_A_TOKEN' } }],
+    ['receipts.check', { jsonrpc: '2.0', id: 6, method: 'receipts.check',
+      params: { id: 'PASTE_A_RECEIPT_ID' } }],
+    ['a blocked card', { jsonrpc: '2.0', id: 7, method: 'cards.create',
+      params: { card: { number: '4444445987459073', expire: '0399' }, save: true } }],
+    ['an expired card', { jsonrpc: '2.0', id: 8, method: 'cards.create',
+      params: { card: { number: '3333336415804657', expire: '0399' }, save: true } }]
+  ];
+
+  var box = el('recipes');
+  recipes.forEach(function (r) {
+    var b = document.createElement('button');
+    b.textContent = r[0];
+    b.addEventListener('click', function () {
+      el('body').value = JSON.stringify(r[1], null, 2);
+    });
+    box.appendChild(b);
+  });
+  el('body').value = JSON.stringify(recipes[0][1], null, 2);
+
+  function pretty(text) {
+    try { return JSON.stringify(JSON.parse(text), null, 2); } catch (e) { return text; }
+  }
+
+  // A token or receipt id is long and the reader needs it for the next call,
+  // so the tables carry the whole string rather than an abbreviation.
+  function render(stateText) {
+    var s;
+    try { s = JSON.parse(stateText); } catch (e) { return; }
+
+    el('balance').textContent = (s.balance / 100).toLocaleString('en-US',
+      { minimumFractionDigits: 2 }) + ' UZS';
+
+    var cards = el('cards');
+    cards.innerHTML = '';
+    if (!s.cards.length) {
+      cards.innerHTML = '<tr><td colspan="3" class="empty">No cards yet.</td></tr>';
+    }
+    s.cards.forEach(function (c) {
+      var cls = c.outcome === 'success' ? 'ok' : 'bad';
+      var row = document.createElement('tr');
+      row.innerHTML = '<td class="mono">' + c.number + '<br><span style="color:var(--muted)">'
+        + c.token + '</span></td>'
+        + '<td><span class="tag ' + cls + '">' + c.outcome + '</span></td>'
+        + '<td>' + (c.verified ? 'yes' : 'no') + '</td>';
+      cards.appendChild(row);
+    });
+
+    var receipts = el('receipts');
+    receipts.innerHTML = '';
+    if (!s.receipts.length) {
+      receipts.innerHTML = '<tr><td colspan="3" class="empty">No receipts yet.</td></tr>';
+    }
+    s.receipts.forEach(function (r) {
+      // 4 is paid and 50 is cancelled; anything between is still moving.
+      var cls = r.state === 4 ? 'ok' : (r.state >= 50 ? 'bad' : 'warn');
+      var row = document.createElement('tr');
+      row.innerHTML = '<td class="mono">' + r.id + '</td>'
+        + '<td class="mono">' + (r.amount / 100).toLocaleString('en-US',
+            { minimumFractionDigits: 2 }) + '</td>'
+        + '<td><span class="tag ' + cls + '">' + r.state + '</span></td>';
+      receipts.appendChild(row);
+    });
+
+    el('sms').textContent = s.sms.length ? s.sms[s.sms.length - 1] : 'nothing sent';
+    el('webhooks').textContent = s.webhooks.length ? s.webhooks.join(' → ') : 'none';
+  }
+
+  function authValue() {
+    return el('auth').value === 'idkey'
+      ? creds.merchantID + ':' + creds.testKey
+      : creds.merchantID;
+  }
+
+  // The Go build publishes its functions from main, so the page waits to be
+  // told rather than polling for them.
+  window.paymeReady = function () {
+    creds = window.paymeCredentials();
+    el('merchantid').textContent = creds.merchantID;
+    el('testkey').textContent = creds.testKey;
+    el('send').disabled = false;
+    el('reset').disabled = false;
+    el('status').textContent = 'ready — nothing leaves this tab';
+    render(window.paymeState());
+  };
+
+  el('send').addEventListener('click', function () {
+    var answer = window.paymeCall(el('body').value, authValue());
+    el('answer').textContent = pretty(answer);
+    render(window.paymeState());
+  });
+
+  el('reset').addEventListener('click', function () {
+    render(window.paymeReset());
+    el('answer').textContent = '—';
+  });
+
+  var go = new Go();
+  WebAssembly.instantiateStreaming(fetch('payme-mock.wasm'), go.importObject)
+    .then(function (result) { go.run(result.instance); })
+    .catch(function (err) {
+      el('status').textContent = 'the WebAssembly build did not load: ' + err;
+    });
+})();
+</script>
+
+</body>
+</html>

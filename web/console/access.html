@@ -1,0 +1,85 @@
+{{define "content"}}
+<h1>Access</h1>
+<p class="sub">Who may reach a stand at all. The provider only answers addresses a merchant registered,
+so an integration that works from a laptop and fails from the server is worth rehearsing.</p>
+
+{{if .Error}}<div class="err">{{.Error}}</div>{{end}}
+
+<dialog id="rule-new">
+  <h3>Admit an address</h3>
+  <form method="post" action="/access" class="edit">
+    <div>
+      <label for="sandbox_id">Sandbox</label>
+      <select id="sandbox_id" name="sandbox_id" required>
+        {{range .Access}}<option value="{{.ID}}">{{.Slug}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="cidr">Address or network</label>
+      <input id="cidr" name="cidr" placeholder="203.0.113.7 or 10.0.0.0/8" required>
+    </div>
+    <p class="hint">A bare address admits one machine; an address with a mask admits the network.
+    The first rule on a stand is what turns the check on — until then it answers everyone.</p>
+    <div>
+      <label for="note">Note <span class="opt">optional</span></label>
+      <input id="note" name="note" placeholder="staging server">
+    </div>
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit">Admit</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="panel">
+  <h2>Stands</h2>
+  {{if .Access}}
+  <div class="scroll">
+  <table>
+    <tr><th>Sandbox</th><th>Reachable from</th></tr>
+    {{range .Access}}
+    <tr>
+      <td>{{.Slug}}</td>
+      <td>
+        {{if .Rules}}<span class="tag warn">{{.Rules}} address(es) only</span>
+        {{else}}<span class="tag ok">anywhere</span>{{end}}
+      </td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+  {{else}}
+  <p class="empty">No stands yet.</p>
+  {{end}}
+</div>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>{{len .IPRules}} rule(s)</h2>
+    <button type="button" onclick="dialogFor('rule-new')">Admit an address</button>
+  </div>
+  {{if .IPRules}}
+  <div class="scroll">
+  <table>
+    <tr><th>Sandbox</th><th>Address</th><th>Note</th><th>Added</th><th></th></tr>
+    {{range .IPRules}}
+    <tr>
+      <td>{{.Sandbox}}</td>
+      <td class="mono">{{.CIDR}}</td>
+      <td>{{if .Note}}{{.Note}}{{else}}—{{end}}</td>
+      <td class="mono opt">{{.Created}}</td>
+      <td class="actions-cell">
+        <form method="post" action="/access/{{.ID}}/delete"
+              onsubmit="return confirm('Stop admitting {{.CIDR}}?')">
+          <button class="ghost danger" type="submit">Remove</button>
+        </form>
+      </td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+  {{else}}
+  <p class="empty">No rules. Every stand answers every address.</p>
+  {{end}}
+</div>
+{{end}}

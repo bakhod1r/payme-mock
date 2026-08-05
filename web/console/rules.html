@@ -1,0 +1,149 @@
+{{define "content"}}
+<h1>Rules</h1>
+<p class="sub">Pick a method and what it should return. The next call takes the rule.</p>
+
+{{if .Error}}<div class="err">{{.Error}}</div>{{end}}
+
+<dialog id="rule-new">
+  <h3>Make a method answer differently</h3>
+  <form method="post" action="/rules" class="edit">
+    <div>
+      <label for="sandbox_id">Sandbox <span class="opt">(optional — leave as “every sandbox” to break the method everywhere)</span></label>
+      <select id="sandbox_id" name="sandbox_id">
+        <option value="">every sandbox</option>
+        {{range .Sandboxes}}<option value="{{.ID}}">{{.Slug}}</option>{{end}}
+      </select>
+    </div>
+
+    <div>
+      <label for="method">Method</label>
+      <select id="method" name="method">
+        {{range .Groups}}
+        <optgroup label="{{.Label}}">
+          {{range .Methods}}
+          <option value="{{.Name}}" data-service="{{.Service}}">{{.Label}}</option>
+          {{end}}
+        </optgroup>
+        {{end}}
+      </select>
+      <input type="hidden" id="service" name="service" value="merchant">
+    </div>
+
+    <div>
+      <label for="outcome">Returns</label>
+      <select id="outcome" name="outcome"></select>
+    </div>
+
+    <div id="seconds-field">
+      <label for="delay_seconds">Seconds</label>
+      <input id="delay_seconds" name="delay_seconds" type="number" step="0.1" min="0" max="3600"
+             placeholder="0">
+    </div>
+
+    <div>
+      <label for="probability">How often (%)</label>
+      <input id="probability" name="probability" type="number" min="0" max="100" value="100">
+    </div>
+
+    <div>
+      <label for="times_left">Uses</label>
+      <input id="times_left" name="times_left" type="number" min="1" placeholder="forever">
+    </div>
+
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit">Create</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>{{len .Rules}} rule(s), first match wins</h2>
+    <div class="rowactions">
+      <form method="get" action="/rules" class="search">
+        <input type="search" name="q" value="{{.Search}}" placeholder="name, method or sandbox">
+        <button type="submit" class="ghost">Search</button>
+        {{if .Search}}<a href="/rules"><button type="button" class="ghost">Clear</button></a>{{end}}
+      </form>
+      <button type="button" onclick="dialogFor('rule-new')">New rule</button>
+    </div>
+  </div>
+  {{if .Rules}}
+  <div class="scroll">
+  <table>
+    <tr>
+      <th>Sandbox</th><th>API</th><th>Method</th><th>Returns</th>
+      <th>State</th><th>Fired</th>
+    </tr>
+    {{range .Rules}}
+    <tr class="row" data-href="/rules/{{.ID}}">
+      <td>{{.Sandbox}}</td>
+      <td>{{.Service}}</td>
+      <td class="mono">{{.Method}}</td>
+      <td>{{.Detail}}</td>
+      <td>{{if .Enabled}}<span class="tag ok">on</span>{{else}}<span class="tag">off</span>{{end}}</td>
+      <td>{{.HitCount}}×</td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+
+  {{else}}
+  <p class="empty">No rules. Every call is answered normally.</p>
+  {{end}}
+</div>
+
+<script>
+// The outcomes on offer follow the method: a call that cannot report a missing
+// transaction should not let anyone pin that error to it.
+var outcomes = {
+  {{range .Groups}}{{range .Methods}}
+  {{.Name}}: [{{range .Outcomes}}{value: {{.Value}}, label: {{.Label}}},{{end}}],
+  {{end}}{{end}}
+};
+
+(function () {
+  var method = document.getElementById('method');
+  var outcome = document.getElementById('outcome');
+  var service = document.getElementById('service');
+  var seconds = document.getElementById('seconds-field');
+  var secondsInput = document.getElementById('delay_seconds');
+
+  function syncOutcomes() {
+    var selected = method.options[method.selectedIndex];
+    service.value = selected.dataset.service;
+
+    var previous = outcome.value;
+    outcome.innerHTML = '';
+
+    (outcomes[method.value] || []).forEach(function (item) {
+      var option = document.createElement('option');
+      option.value = item.value;
+      option.textContent = item.label;
+      outcome.appendChild(option);
+    });
+
+    // Keeping the choice across a method change saves re-picking "timeout"
+    // when only the method was wrong.
+    if (previous) { outcome.value = previous; }
+
+    syncSeconds();
+  }
+
+  // A timeout has to say how long it stalls; anything else may take a wait to
+  // answer slowly but correctly, so the field stays optional.
+  function syncSeconds() {
+    var timeout = outcome.value === 'timeout';
+    seconds.style.display = '';
+    secondsInput.required = timeout;
+    secondsInput.placeholder = timeout ? 'required' : 'optional';
+    if (timeout && !secondsInput.value) { secondsInput.value = '120'; }
+  }
+
+  method.addEventListener('change', syncOutcomes);
+  outcome.addEventListener('change', syncSeconds);
+  syncOutcomes();
+})();
+</script>
+{{end}}

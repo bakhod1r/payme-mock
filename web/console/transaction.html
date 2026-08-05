@@ -1,0 +1,99 @@
+{{define "content"}}
+{{with .Transaction}}
+<h1 class="mono">{{.PaymeID}}</h1>
+<p class="sub"><a href="/payments">← all payments</a> · {{.Sandbox}} ·
+  {{if .Failed}}<span class="tag bad">{{.State}} · {{.StateLabel}}</span>
+  {{else}}<span class="tag ok">{{.State}} · {{.StateLabel}}</span>{{end}}</p>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>What happened</h2>
+    <div class="rowactions">
+      <button type="button" onclick="dialogFor('tx-edit')">Force state</button>
+      <span class="sep"></span>
+      <form method="post" action="/transactions/{{.ID}}/delete"
+            onsubmit="return confirm('Delete this payment and its history?')">
+        <button class="ghost danger">Delete</button>
+      </form>
+    </div>
+  </div>
+  <dl class="facts">
+    <dt>Where it went</dt>
+    <dd><span class="mono">{{.From}}</span> → <span class="mono">{{.To}}</span></dd>
+    <dt>Cashbox</dt>
+    <dd>{{.Sandbox}} · {{.Kind}}{{if .MerchantName}} · {{.MerchantName}}{{end}}
+        <span class="opt">{{.KindMeaning}}</span></dd>
+    <dt>Amount</dt><dd>{{sum .Amount}} UZS <span class="opt">({{.Amount}} tiyin)</span></dd>
+    <dt>Card</dt>
+    <dd>{{if .CardID}}<a href="/cards/{{.CardID}}" class="mono">{{.Card}}</a>
+        {{else}}— <span class="opt">no card: this payment did not come through a saved card</span>{{end}}</dd>
+    <dt>State</dt>
+    <dd>{{.State}} · {{.StateLabel}}{{if ne .Reason "—"}} <span class="opt">reason {{.Reason}}</span>{{end}}</dd>
+    <dt>Order</dt><dd>{{.OrderID}}</dd>
+    <dt>Receipt</dt>
+    <dd>{{if .ReceiptRow}}<a href="/receipts/{{.ReceiptRow}}" class="mono">{{.ReceiptID}}</a>
+        {{else}}— <span class="opt">driven straight against the Merchant API</span>{{end}}</dd>
+    <dt>Account</dt>
+    <dd>
+      {{if .AccountFields}}
+      <table class="inner">
+        {{range .AccountFields}}
+        <tr><th>{{.Name}}</th><td class="copy">{{.Value}}</td></tr>
+        {{end}}
+      </table>
+      {{else}}{{.Account}}{{end}}
+    </dd>
+  </dl>
+</div>
+
+<div class="panel">
+  <h2>When</h2>
+  <dl class="facts">
+    <dt>Payme time</dt><dd>{{moment .PaymeTime}} <span class="opt">{{.PaymeTime}}</span></dd>
+    <dt>Created</dt><dd>{{moment .CreateTime}} <span class="opt">{{.CreateTime}}</span></dd>
+    <dt>Performed</dt><dd>{{moment .PerformTime}} <span class="opt">{{.PerformTime}}</span></dd>
+    <dt>Cancelled</dt><dd>{{moment .CancelTime}} <span class="opt">{{.CancelTime}}</span></dd>
+    <dt>Row written</dt><dd>{{.CreatedAt}} <span class="opt">updated {{.UpdatedAt}}</span></dd>
+  </dl>
+</div>
+
+<div class="panel">
+  <details class="fold" data-fold="txn-raw">
+  <summary>
+    <span class="foldtitle">Everything the protocol carried</span>
+    <span class="count">raw</span>
+  </summary>
+  <div class="foldbody">
+  <dl class="facts">
+    <dt>Row id</dt><dd>{{.ID}}</dd>
+    <dt>Payme id</dt><dd class="copy">{{.PaymeID}}</dd>
+    <dt>Payer</dt><dd>{{.AccountID}}</dd>
+    <dt>Reason</dt><dd>{{.Reason}}</dd>
+    <dt>Receivers</dt><dd>{{if .Receivers}}<code>{{.Receivers}}</code>{{else}}—{{end}}</dd>
+  </dl>
+  </div>
+  </details>
+</div>
+
+<dialog id="tx-edit">
+  <h3>Force state · {{.PaymeID}}</h3>
+  <form method="post" action="/transactions/{{.ID}}" class="edit">
+    <input type="hidden" name="back" value="/transactions/{{.ID}}">
+    <div>
+      <label for="state">State</label>
+      <select id="state" name="state">
+        {{$state := .State}}
+        {{range $.States}}{{if .Settable}}<option value="{{.Value}}" {{if eq .Number $state}}selected{{end}}>{{.Label}}</option>{{end}}{{end}}
+      </select>
+    </div>
+    <p class="hint">A real payment only moves through the state machine. Forcing a state
+    is for rehearsing what happens after one was settled or reversed upstream; the
+    balance is not moved to match.</p>
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+{{end}}
+{{end}}

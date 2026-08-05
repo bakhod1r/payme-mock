@@ -1,0 +1,20 @@
+{{define "content"}}
+<div class="login">
+  <div class="panel">
+    <div class="brand">payme-mock</div>
+    <p class="sub">Control console</p>
+    {{if .Error}}<div class="err">{{.Error}}</div>{{end}}
+    <form method="post" action="/login" class="stack">
+      <div>
+        <label for="username">Username</label>
+        <input id="username" name="username" autocomplete="username" autofocus required>
+      </div>
+      <div>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+      </div>
+      <button type="submit">Sign in</button>
+    </form>
+  </div>
+</div>
+{{end}}

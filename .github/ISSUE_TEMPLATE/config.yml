@@ -1,0 +1,13 @@
+# A question filed as an issue is a fine contribution: it usually means
+# something in the README should have been clearer. So the blank issue stays
+# open rather than being funnelled into a template that does not fit it.
+blank_issues_enabled: true
+
+contact_links:
+  - name: Security issue
+    url: https://github.com/bakhod1r/payme-mock/security/advisories/new
+    about: Report it privately, not here.
+
+  - name: Payme's own protocol documentation
+    url: https://developer.help.paycom.uz/
+    about: For what the real provider does. This project only imitates it.

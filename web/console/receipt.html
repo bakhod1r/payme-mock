@@ -1,0 +1,78 @@
+{{define "content"}}
+{{with .Receipt}}
+<h1 class="mono">{{.ReceiptID}}</h1>
+<p class="sub"><a href="/payments">← all payments</a> · {{.Sandbox}} ·
+  {{if .Payout}}<span class="tag warn">{{.Way}}</span>{{else}}<span class="tag ok">{{.Way}}</span>{{end}} ·
+  {{if .Failed}}<span class="tag bad">{{.State}} · {{.StateLabel}}</span>
+  {{else if .Open}}<span class="tag warn">{{.State}} · {{.StateLabel}}</span>
+  {{else}}<span class="tag ok">{{.State}} · {{.StateLabel}}</span>{{end}}</p>
+
+<div class="panel">
+  <h2>What happened</h2>
+  <dl class="facts">
+    <dt>What</dt>
+    <dd>{{.Way}} · {{if .Payout}}money went back onto the card{{else}}money came off the card{{end}}</dd>
+    <dt>Where it went</dt>
+    <dd><span class="mono">{{.From}}</span> → <span class="mono">{{.To}}</span></dd>
+    <dt>Cashbox</dt>
+    <dd>{{.Sandbox}}{{if .MerchantName}} · {{.MerchantName}}{{end}}</dd>
+    <dt>Amount</dt><dd>{{sum .Amount}} UZS <span class="opt">({{.Amount}} tiyin)</span></dd>
+    <dt>Card</dt>
+    <dd>{{if .CardID}}<a href="/cards/{{.CardID}}" class="mono">{{.Card}}</a>
+        {{else}}<span class="mono">{{.Card}}</span> <span class="opt">the card is gone; the receipt outlives it</span>{{end}}
+        {{if .CardSystem}} <span class="opt">{{.CardSystem}}</span>{{end}}</dd>
+    <dt>State</dt><dd>{{.State}} · {{.StateLabel}}</dd>
+    <dt>Merchant payment</dt>
+    <dd>{{if .TransactionRow}}<a href="/transactions/{{.TransactionRow}}" class="mono">{{.MerchantTxn}}</a>
+        {{else if .Payout}}— <span class="opt">a withdrawal asks a merchant for nothing; the register writes its own row</span>
+        {{else}}— <span class="opt">the merchant chain has not run yet</span>{{end}}</dd>
+    <dt>Account</dt>
+    <dd>
+      {{if .AccountFields}}
+      <table class="inner">
+        {{range .AccountFields}}
+        <tr><th>{{.Name}}</th><td class="copy">{{.Value}}</td></tr>
+        {{end}}
+      </table>
+      {{else}}{{.Account}}{{end}}
+    </dd>
+    {{if .Hold}}<dt>Hold</dt><dd>held · expires {{moment .HoldExpire}}</dd>{{end}}
+    {{if .Description}}<dt>Description</dt><dd>{{.Description}}</dd>{{end}}
+  </dl>
+</div>
+
+<div class="panel">
+  <h2>When</h2>
+  <dl class="facts">
+    <dt>Created</dt><dd>{{moment .CreateTime}} <span class="opt">{{.CreateTime}}</span></dd>
+    <dt>Paid</dt><dd>{{moment .PayTime}} <span class="opt">{{.PayTime}}</span></dd>
+    <dt>Cancelled</dt><dd>{{moment .CancelTime}} <span class="opt">{{.CancelTime}}</span></dd>
+    <dt>Row written</dt><dd>{{.CreatedAt}} <span class="opt">updated {{.UpdatedAt}}</span></dd>
+  </dl>
+</div>
+
+<div class="panel">
+  <details class="fold" data-fold="receipt-raw">
+  <summary>
+    <span class="foldtitle">Everything the protocol carried</span>
+    <span class="count">raw</span>
+  </summary>
+  <div class="foldbody">
+  <dl class="facts">
+    <dt>Row id</dt><dd>{{.ID}}</dd>
+    <dt>Receipt id</dt><dd class="copy">{{.ReceiptID}}</dd>
+    <dt>Cashbox</dt><dd class="copy">{{.Merchant}}</dd>
+    <dt>Commission</dt><dd>{{sum .Commission}} UZS <span class="opt">({{.Commission}} tiyin)</span></dd>
+    <dt>Currency</dt><dd>{{.Currency}}</dd>
+    <dt>Type</dt><dd>{{.Type}}</dd>
+    <dt>Hold</dt><dd>{{if .Hold}}yes · expires {{moment .HoldExpire}}{{else}}no{{end}}</dd>
+    <dt>Processing id</dt><dd class="mono">{{if .ProcessingID}}{{.ProcessingID}}{{else}}—{{end}}</dd>
+    <dt>Detail</dt><dd>{{if .Detail}}<code>{{.Detail}}</code>{{else}}—{{end}}</dd>
+    <dt>Payer</dt><dd>{{if .Payer}}<code>{{.Payer}}</code>{{else}}—{{end}}</dd>
+    <dt>Meta</dt><dd>{{if .Meta}}<code>{{.Meta}}</code>{{else}}—{{end}}</dd>
+  </dl>
+  </div>
+  </details>
+</div>
+{{end}}
+{{end}}

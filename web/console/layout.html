@@ -1,0 +1,609 @@
+{{define "layout"}}<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}} · payme-mock console</title>
+<style>
+:root {
+  --bg: #0f1115; --panel: #171a21; --line: #262b36; --text: #e6e9ef;
+  --header-h: 52px;
+  --muted: #8b93a3; --accent: #4f8cff; --ok: #3ecf8e; --warn: #f0b429; --bad: #ff5c5c;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+/* The header stays put: on a long traffic tail the way out of a screen should
+   never be a scroll away. Its height is fixed because the sticky table heads
+   park directly under it; a header that grew by a line would leave a gap for
+   scrolling rows to show through. */
+header { position: sticky; top: 0; z-index: 30; height: var(--header-h);
+  display: flex; align-items: center; gap: 24px; padding: 0 24px;
+  border-bottom: 1px solid var(--line); background: var(--panel); }
+header .brand { font-weight: 700; letter-spacing: .3px; color: var(--text); }
+header .brand:hover { text-decoration: none; color: var(--accent); }
+header nav { display: flex; gap: 4px; }
+header nav a { color: var(--muted); padding: 6px 11px; border-radius: 7px; }
+header nav a:hover { color: var(--text); background: #1e222b; text-decoration: none; }
+header nav a.on { color: var(--text); background: #232838;
+  box-shadow: inset 0 -2px 0 var(--accent); }
+header .spacer { margin-left: auto; color: var(--muted); font-size: 13px; }
+main { padding: 28px 24px 64px; max-width: 1180px; margin: 0 auto; }
+h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -.2px; }
+.sub { color: var(--muted); margin: 0 0 22px; }
+.cards { display: grid; gap: 14px; margin-bottom: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; }
+.statlabel { color: var(--muted); font-size: 12px; text-transform: uppercase;
+  letter-spacing: .6px; }
+.statvalue { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 18px; margin-bottom: 20px; }
+.panel h2 { font-size: 14px; margin: 0 0 14px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .6px; }
+/* A panel that owns a create button puts it opposite the heading. */
+.panelhead { display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; margin-bottom: 14px; }
+.panelhead h2 { margin: 0; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line);
+  white-space: nowrap; }
+th { color: var(--muted); font-weight: 600; font-size: 11px;
+  text-transform: uppercase; letter-spacing: .5px; }
+/* The head does not stick: parked under the page header it covered the first
+   row, and a list short enough to read needs no second fixed strip. */
+tbody tr:hover td, table tr:hover td { background: #1c2029; }
+tr:last-child td { border-bottom: none; }
+/* Figures line up digit over digit, so two balances compare at a glance. */
+td.num, th.num, .mono { font-variant-numeric: tabular-nums; }
+/* The heading follows its column: a right-aligned figure under a left-aligned
+   label reads as two columns that do not belong together. */
+th.num, td.num { text-align: right; }
+/* The actions column takes what it needs and no more. */
+td.actions-cell { width: 1%; }
+/* A row that stands for a page opens it, so a table needs no column of
+   buttons that all say the same word. */
+tr.row { cursor: pointer; }
+tr.row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px;
+  border: 1px solid var(--line); color: var(--muted); }
+.tag.ok { color: var(--ok); border-color: #1f5c43; }
+.tag.warn { color: var(--warn); border-color: #6b5317; }
+.tag.bad { color: var(--bad); border-color: #6b2626; }
+form.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+input, select { background: #0d0f14; border: 1px solid var(--line); color: var(--text);
+  border-radius: 7px; padding: 9px 11px; font: inherit; min-width: 200px; }
+input:focus, select:focus { outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79,140,255,.18); }
+input::placeholder { color: #5c6474; }
+button { background: var(--accent); border: none; color: #fff; border-radius: 7px;
+  padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer;
+  transition: background .12s, border-color .12s, color .12s; }
+button:hover { filter: brightness(1.1); }
+/* Keyboard users get the same ring the fields have; mouse clicks get none. */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.ghost { background: transparent; border: 1px solid var(--line); color: var(--text);
+  font-weight: 500; }
+button.ghost:hover { filter: none; background: #232838; border-color: #39404f; }
+/* Row buttons are secondary to the data they sit beside. */
+.rowactions button { padding: 5px 10px; font-size: 12px; }
+.err { background: #2a1618; border: 1px solid #6b2626; color: #ffb4b4;
+  padding: 10px 13px; border-radius: 8px; margin-bottom: 16px; }
+/* A write that worked says so; without it every action looks like a page that
+   merely reloaded. */
+.ok-note { background: #12241c; border: 1px solid #1f5c43; color: #9ae6c4;
+  padding: 10px 13px; border-radius: 8px; margin-bottom: 16px; }
+.empty { color: var(--muted); padding: 22px 2px; text-align: center; }
+
+/* Charts. Two shapes only: a proportion bar for parts of a whole, and a
+   horizontal bar chart for which of a list is biggest. Both are plain elements
+   rather than SVG — the widths are percentages, so the browser does the layout
+   and the chart reflows with the panel. */
+
+/* The segments are separated by a gap in the surface colour rather than by a
+   border: a border would sit inside the width and make a thin segment read as
+   larger than its share. */
+.propbar { display: flex; gap: 2px; height: 12px; border-radius: 6px;
+  overflow: hidden; background: var(--bg); }
+.propseg { display: block; height: 100%; border-radius: 3px; min-width: 3px; }
+/* The in-table version: shorter, and sized so a row keeps its height. */
+.propbar.mini { height: 8px; width: 120px; display: inline-flex; vertical-align: middle; }
+
+/* Identity is never colour alone: every segment is named here with its count. */
+.legend { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 20px;
+  margin: 14px 0 0; padding: 0; font-size: 13px; }
+.legend li { display: flex; align-items: center; gap: 7px; }
+.legend .swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+
+.barchart { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.barchart li { display: grid; grid-template-columns: minmax(0, 13em) 1fr 3.5em;
+  align-items: center; gap: 12px; }
+.barlabel { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bartrack { background: var(--bg); border-radius: 5px; height: 10px; }
+/* Anchored to the left baseline and rounded only at the data end, so the bar
+   reads as a measurement rather than as a pill floating in a track. */
+.barfill { display: block; height: 100%; min-width: 3px;
+  background: var(--accent); border-radius: 2px 5px 5px 2px; }
+.barvalue { color: var(--muted); text-align: right; font-size: 12px; }
+.login { max-width: 360px; margin: 12vh auto; }
+.login .panel { padding: 26px; }
+.login input { width: 100%; }
+.login button { width: 100%; margin-top: 6px; }
+.login .brand { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.login .sub { margin-bottom: 22px; }
+.stack > * + * { margin-top: 14px; }
+.bodies { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+@media (max-width: 820px) { .bodies { grid-template-columns: 1fr; } }
+/* A grid track is as wide as its widest content unless it is told otherwise,
+   and one line of a request body is a 400-character token with nothing to break
+   at. Without this the track grows to fit it, the panel grows with the track,
+   and the whole page scrolls sideways instead of the one box that is too wide. */
+.bodies > * { min-width: 0; }
+.bodies pre { background: #0d0f14; border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px 12px; margin: 0; overflow-x: auto; font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); }
+details summary::marker { color: var(--muted); }
+.bodylabel { color: var(--muted); font-size: 11px; text-transform: uppercase;
+  letter-spacing: .6px; margin-bottom: 5px; }
+.bodies pre { max-height: 380px; overflow: auto; white-space: pre; max-width: 100%; }
+.menu { position: relative; }
+.menu > summary { list-style: none; cursor: pointer; padding: 4px 10px; border-radius: 7px;
+  border: 1px solid var(--line); color: var(--muted); display: inline-block; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu[open] > summary { border-color: var(--accent); color: var(--text); }
+.menu-body { position: absolute; right: 0; top: 110%; z-index: 20; width: 280px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 12px; display: flex; flex-direction: column; gap: 8px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.5); }
+.menu-body form { display: flex; gap: 6px; }
+.menu-body input, .menu-body select { min-width: 0; flex: 1; padding: 7px 9px; }
+.menu-body button { white-space: nowrap; }
+.menu-body hr { border: none; border-top: 1px solid var(--line); margin: 2px 0; width: 100%; }
+/* A menu near the bottom of the window opens upwards instead, so the last row
+   of a long table is as usable as the first. */
+.menu.up .menu-body { top: auto; bottom: 110%; }
+button.danger { color: var(--bad); border-color: #6b2626; }
+button.danger:hover { background: #2a1618; border-color: var(--bad); }
+/* A separator inside a row of buttons keeps a delete from sitting flush
+   against the harmless ones. */
+.rowactions .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 2px; }
+dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line);
+  border-radius: 12px; padding: 22px; max-width: 720px; width: 92vw; }
+dialog::backdrop { background: rgba(0,0,0,.6); }
+dialog h3 { margin: 0 0 14px; font-size: 16px; }
+dialog dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; margin: 0; }
+dialog dt { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+dialog dd { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px; word-break: break-all; }
+/* Credentials and URLs are meant to be copied out, so they select on a click
+   rather than making anyone drag across a long hex string. */
+/* Credentials and URLs exist to be pasted somewhere else, so one click takes
+   them: the whole value is the button. */
+dd.copy, dl.facts dd.copy { user-select: all; cursor: copy; position: relative;
+  display: inline-flex; align-items: center; gap: 8px; }
+dd.copy::after { content: "copy"; font-family: ui-sans-serif, -apple-system, sans-serif;
+  font-size: 10px; letter-spacing: .5px; text-transform: uppercase; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; }
+dd.copy:hover::after { color: var(--text); border-color: #39404f; }
+dd.copy.copied::after { content: "copied"; color: var(--ok); border-color: #1f5c43; }
+dialog .close { margin-top: 18px; }
+/* Edit dialogs are proper forms: one field per row, labelled, full width. */
+dialog form.edit { display: grid; gap: 14px; }
+dialog form.edit label { margin-bottom: 5px; }
+dialog form.edit input, dialog form.edit select { width: 100%; }
+dialog .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
+dialog .section { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 4px; }
+dialog .section h4 { margin: 0 0 12px; font-size: 12px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .6px; }
+dialog .inline { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 10px; }
+dialog .inline > div { flex: 1; }
+dialog .hint { color: var(--muted); font-size: 12px; margin: -6px 0 0; }
+/* A command is read left to right and pasted whole, so it keeps its own line
+   breaks and scrolls rather than wrapping into something unreadable. */
+pre.curl { background: #0f131c; border: 1px solid var(--line); border-radius: 8px;
+  padding: 12px 14px; overflow-x: auto; max-width: 100%; font-size: 12px;
+  line-height: 1.6; margin: 0; }
+/* Buttons that fill a field in rather than submit anything: smaller than the
+   form's own, and on one line under the fields they write to. */
+.gen { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: -8px 0 0; }
+.gen .opt { font-size: 12px; }
+.gen button { padding: 4px 9px; font-size: 12px; }
+/* A label can carry the rule about a field without a second line of prose. */
+.opt { color: #5c6474; font-weight: 400; text-transform: none; }
+/* Tokens are one long word. Where they sit in prose — a fact list, a cell —
+   they break wherever they must rather than push the layout out. */
+.facts dd, td .copy, dialog dd { overflow-wrap: anywhere; }
+.rowactions { display: flex; gap: 8px; align-items: center; }
+.rowactions a { text-decoration: none; }
+/* Fact lists read the same on a page as they do in a dialog. */
+dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; margin: 0; }
+dl.facts dt { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+dl.facts dd { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px; word-break: break-all; }
+dl.facts dd.result { font-weight: 700; }
+dl.facts dd.short { color: var(--bad); }
+/* Two halves of one screen, not two screens: the strip sits on the panel it
+   belongs to, and the tab that is showing carries the accent the nav uses. */
+.tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+.tabs a { color: var(--muted); padding: 9px 14px; border-radius: 8px 8px 0 0;
+  border: 1px solid transparent; border-bottom: none; margin-bottom: -1px; }
+.tabs a:hover { color: var(--text); background: #1e222b; text-decoration: none; }
+.tabs a.on { color: var(--text); background: var(--panel); border-color: var(--line);
+  box-shadow: inset 0 2px 0 var(--accent); }
+.tabs .count { color: var(--muted); font-size: 11px; margin-left: 6px;
+  font-variant-numeric: tabular-nums; }
+/* A search box lives in the row of buttons above a list, so it is sized to sit
+   beside them rather than to fill a form. */
+/* A live panel is marked rather than labelled: the accent edge is what tells
+   an operator at a glance which of two tables on a screen is moving. */
+.panel.live { border-left: 2px solid var(--accent); }
+/* A panel that folds away: on a screen watched all day the live half is the
+   part that moves, and someone reading the list below should be able to put it
+   down without losing it. */
+details.fold > summary { list-style: none; cursor: pointer; display: flex;
+  align-items: center; gap: 10px; }
+details.fold > summary::-webkit-details-marker { display: none; }
+/* The triangle is drawn rather than borrowed, so it points the same way in
+   every browser and turns with the panel. */
+details.fold > summary::before { content: ""; width: 0; height: 0;
+  border-left: 5px solid var(--muted); border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent; transition: transform .12s; }
+details.fold[open] > summary::before { transform: rotate(90deg); }
+details.fold > summary .foldtitle { font-size: 14px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .6px; font-weight: 600; }
+details.fold > summary .count { color: var(--muted); font-size: 11px;
+  border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px;
+  font-variant-numeric: tabular-nums; }
+details.fold > summary:hover .foldtitle { color: var(--text); }
+.foldbody { margin-top: 14px; }
+.foldtools { justify-content: flex-end; margin-bottom: 12px; }
+/* An object shown inside a fact list — an account, a payload — reads as a pair
+   of columns rather than as one line of JSON the reader has to parse. */
+table.inner { width: auto; font-size: 12px; margin: -4px 0; }
+table.inner th, table.inner td { padding: 3px 14px 3px 0; border: none;
+  vertical-align: top; }
+table.inner th { color: var(--muted); font-weight: 500; text-transform: none;
+  letter-spacing: 0; font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+table.inner td { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+table.inner tr:hover td, table.inner tr:hover th { background: none; }
+/* The value is worth copying on its own, so it carries the same click the
+   credentials do. */
+table.inner td.copy { user-select: all; cursor: copy; }
+form.search { display: flex; gap: 6px; align-items: center; }
+form.search input { min-width: 220px; padding: 5px 10px; font-size: 13px; }
+form.search button { padding: 5px 10px; font-size: 12px; }
+/* A pager is two buttons and a count, under the list it moves through. */
+.pager { display: flex; align-items: center; justify-content: center; gap: 14px;
+  margin-top: 16px; }
+.pager button[disabled] { opacity: .35; cursor: default; }
+.pager button[disabled]:hover { background: transparent; border-color: var(--line); }
+/* How much of the list to read is the reader's, so the sizes sit in the pager
+   itself rather than behind a filter nobody opens to change a number. */
+.pager .sizes { display: flex; align-items: center; gap: 8px; margin-left: 8px;
+  padding-left: 16px; border-left: 1px solid var(--line); }
+.pager .sizes a { color: var(--muted); font-size: 12px;
+  font-variant-numeric: tabular-nums; }
+.pager .sizes a:hover { color: var(--text); text-decoration: none; }
+.pager .sizes a.on { color: var(--text); font-weight: 600; }
+.filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+{{if .User}}
+<header>
+  <a href="/" class="brand">payme-mock</a>
+  <nav>
+    <a href="/dashboard" {{if eq .Nav "dashboard"}}class="on"{{end}}>Dashboard</a>
+    <a href="/sandboxes" {{if eq .Nav "sandboxes"}}class="on"{{end}}>Cashboxes</a>
+    <a href="/rules" {{if eq .Nav "rules"}}class="on"{{end}}>Rules</a>
+    <a href="/cards" {{if eq .Nav "cards"}}class="on"{{end}}>Cards</a>
+    <a href="/payments" {{if or (eq .Nav "payments") (eq .Nav "transactions") (eq .Nav "receipts")}}class="on"{{end}}>Payments</a>
+    <a href="/traffic" {{if eq .Nav "traffic"}}class="on"{{end}}>Traffic</a>
+  </nav>
+  <span class="spacer">{{.User}}</span>
+  <form method="post" action="/logout"><button class="ghost">Log out</button></form>
+</header>
+{{end}}
+<main>{{if .Notice}}<div class="ok-note">{{.Notice}}</div>{{end}}{{template "content" .}}</main>
+<script>
+// One helper for every edit and details dialog, so a row's buttons say what
+// they open rather than repeating the same three lines of script.
+function dialogFor(id) {
+  var dialog = document.getElementById(id);
+  if (!dialog) { return; }
+  dialog.showModal();
+
+  // Typing starts where the form does, so opening a dialog and reaching for
+  // the mouse is never the first step.
+  var first = dialog.querySelector('input:not([type=hidden]), select, textarea');
+  if (first) { first.focus(); }
+}
+
+// Copying a logged call as a curl command.
+//
+// The button either carries the command itself, on the page that already has
+// it, or names the call so the command can be fetched — a list of a hundred
+// rows would otherwise have to render a hundred bodies to offer this.
+function copyCurl(button) {
+  var ready = button.getAttribute('data-curl');
+  if (ready) { writeClipboard(button, ready); return; }
+
+  fetch('/traffic/' + button.getAttribute('data-entry') + '/curl')
+    .then(function (response) { return response.ok ? response.text() : Promise.reject(); })
+    .then(function (text) { writeClipboard(button, text); })
+    .catch(function () { flash(button, 'could not read it'); });
+}
+
+// writeClipboard copies and says so on the button itself, because a copy that
+// gives no sign is one nobody trusts and everybody presses twice.
+function writeClipboard(button, text) {
+  var done = function () { flash(button, 'copied'); };
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text, button, done); });
+    return;
+  }
+
+  fallbackCopy(text, button, done);
+}
+
+// A page served over plain http has no clipboard API in most browsers, and the
+// console is normally read over exactly that, so the old way stays.
+function fallbackCopy(text, button, done) {
+  var area = document.createElement('textarea');
+  area.value = text;
+  area.setAttribute('readonly', '');
+  area.style.position = 'fixed';
+  area.style.opacity = '0';
+  document.body.appendChild(area);
+  area.select();
+
+  var ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+
+  document.body.removeChild(area);
+
+  if (ok) { done(); return; }
+  flash(button, 'copy it by hand');
+}
+
+function flash(button, message) {
+  var was = button.textContent;
+  button.textContent = message;
+  button.disabled = true;
+
+  setTimeout(function () {
+    button.textContent = was;
+    button.disabled = false;
+  }, 1200);
+}
+
+// Escape and a click outside close a dialog; the first is free, the second is
+// what anyone expects from a modal.
+//
+// An outside click cannot be told from an inside one by the click's target:
+// choosing from a <select> inside the dialog reports the dialog as the target,
+// because the option list is painted by the browser outside the page, and its
+// coordinates land outside the dialog's box too. That is an outside click by
+// every measure except the one that matters, and closing on it ate every filter
+// the moment it was chosen. Where the press started is the measure that holds:
+// it went to the <select>, which is inside.
+var pressedOn = null;
+document.addEventListener('mousedown', function (event) { pressedOn = event.target; });
+
+document.addEventListener('click', function (event) {
+  if (event.target.tagName !== 'DIALOG') { return; }
+
+  // Only a press that started on the backdrop closes. A press that started on
+  // anything inside — a select, a label, a field being dragged over — does not,
+  // however far from the dialog it happens to end.
+  if (pressedOn !== event.target) { return; }
+
+  event.target.close();
+});
+
+// A row menu opens downwards unless the window has no room left, in which case
+// it opens upwards. The measurement happens on open because the table scrolls
+// and the page resizes, so where a row sits is not known ahead of time.
+document.addEventListener('toggle', function (event) {
+  var menu = event.target;
+  if (!menu.classList || !menu.classList.contains('menu')) { return; }
+
+  if (!menu.open) {
+    menu.classList.remove('up');
+    return;
+  }
+
+  // Only one menu at a time; leaving the others open would layer them over
+  // whatever the operator is reading.
+  document.querySelectorAll('details.menu[open]').forEach(function (other) {
+    if (other !== menu) { other.open = false; }
+  });
+
+  var body = menu.querySelector('.menu-body');
+  if (!body) { return; }
+
+  var anchor = menu.getBoundingClientRect();
+  var needed = body.offsetHeight + 12;
+
+  // Flipping up is only an improvement when there is more room above than
+  // below; against a short window the menu stays where it is and scrolls.
+  var below = window.innerHeight - anchor.bottom;
+  menu.classList.toggle('up', below < needed && anchor.top > below);
+}, true);
+
+// A row that stands for a page opens it on a click. The listener is delegated
+// and reads the row's own address, so a table adds no script of its own.
+//
+// Anything inside the row that is already interactive keeps its click: a form,
+// a button and a link on a row all mean something more specific than "open
+// this", and swallowing them would break the row's own actions.
+document.addEventListener('click', function (event) {
+  var row = event.target.closest ? event.target.closest('tr.row') : null;
+  if (!row) { return; }
+
+  if (event.target.closest('a, button, form, input, select, label, details, .copy')) { return; }
+
+  // A modified click means a new tab or a new window, which is worth keeping.
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) {
+    window.open(row.dataset.href, '_blank');
+    return;
+  }
+
+  window.location = row.dataset.href;
+});
+
+// Rows are reachable from the keyboard for the same reason they are clickable:
+// the row is the link. The attributes are set here rather than in every table,
+// so a new list gets them by carrying the class.
+document.querySelectorAll('tr.row').forEach(function (row) {
+  row.tabIndex = 0;
+  row.setAttribute('role', 'link');
+});
+
+document.addEventListener('keydown', function (event) {
+  if (event.key !== 'Enter') { return; }
+
+  var row = event.target.closest ? event.target.closest('tr.row') : null;
+  if (!row || event.target !== row) { return; }
+
+  window.location = row.dataset.href;
+});
+
+// A folded panel stays folded across the reloads it makes: a live view that
+// reopened itself every five seconds would be one nobody could put down.
+document.querySelectorAll('details.fold').forEach(function (fold) {
+  var key = 'fold:' + fold.dataset.fold;
+
+  if (sessionStorage.getItem(key) === 'shut') { fold.open = false; }
+
+  fold.addEventListener('toggle', function () {
+    sessionStorage.setItem(key, fold.open ? 'open' : 'shut');
+  });
+});
+
+// A live panel reloads itself, because a live view an operator has to refresh
+// is not one. The checkbox is the way out: reading a row is impossible if the
+// page reloads under it, so anyone who needs to stop can.
+// busy reports a page that must not be reloaded under whoever is using it.
+//
+// A reload throws away everything not yet submitted, and it arrives on a timer
+// rather than on anything the operator did — so it looks like the console
+// closing a form by itself. Every state where that would destroy work is listed
+// here in one place, rather than a check per screen that the next screen
+// forgets: an open dialog, a field being typed in, a selection being read, or
+// text held on the clipboard mid-copy.
+function busy() {
+  if (document.hidden) { return true; }
+  if (document.querySelector('dialog[open]')) { return true; }
+
+  var focused = document.activeElement;
+  if (focused && /^(INPUT|SELECT|TEXTAREA)$/.test(focused.tagName)) { return true; }
+  if (focused && focused.isContentEditable) { return true; }
+
+  var selection = window.getSelection();
+  if (selection && String(selection).length > 0) { return true; }
+
+  return false;
+}
+
+(function () {
+  var box = document.getElementById('live-refresh');
+  if (!box) { return; }
+
+  // Leaving it off survives the reload, so the choice is not undone by the
+  // very thing it was turning off.
+  box.checked = sessionStorage.getItem('live-refresh') !== 'off';
+
+  var timer = null;
+
+  function start() {
+    timer = setInterval(function () {
+      // The checkbox is the operator's own answer; busy() is the page's.
+      if (!box.checked || busy()) { return; }
+      window.location.reload();
+    }, 5000);
+  }
+
+  box.addEventListener('change', function () {
+    sessionStorage.setItem('live-refresh', box.checked ? 'on' : 'off');
+    if (!box.checked) { clearInterval(timer); timer = null; return; }
+    if (!timer) { start(); }
+  });
+
+  if (box.checked) { start(); }
+})();
+
+// A credential is only ever wanted somewhere else, so clicking one copies it
+// whole rather than asking anyone to drag across a hex string.
+document.addEventListener('click', function (event) {
+  var field = event.target.closest ? event.target.closest('.copy') : null;
+  if (!field) { return; }
+
+  var text = field.textContent.trim();
+  var done = function () {
+    field.classList.add('copied');
+    setTimeout(function () { field.classList.remove('copied'); }, 1200);
+  };
+
+  // The clipboard API needs a secure context, which a stand reached over plain
+  // HTTP on another host is not; the textarea is the fallback that still works.
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(done, function () { legacyCopy(text, done); });
+    return;
+  }
+  legacyCopy(text, done);
+});
+
+function legacyCopy(text, done) {
+  var area = document.createElement('textarea');
+  area.value = text;
+  area.setAttribute('readonly', '');
+  area.style.position = 'fixed';
+  area.style.opacity = '0';
+  document.body.appendChild(area);
+  area.select();
+  try { document.execCommand('copy'); done(); } catch (err) { /* nothing to do */ }
+  document.body.removeChild(area);
+}
+
+// Amounts are stored in tiyin and read in UZS. The same shape the server
+// prints is used here, so a figure does not change form as it is typed.
+function formatSum(tiyin) {
+  var negative = tiyin < 0;
+  var abs = Math.abs(tiyin);
+  var whole = String(Math.floor(abs / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  var cents = String(abs % 100).padStart(2, '0');
+  return (negative ? '-' : '') + whole + '.' + cents;
+}
+
+// The balance dialog does the arithmetic while it is being typed, so nobody
+// has to work out what the register will hold before pressing Save.
+document.addEventListener('input', balanceResult);
+document.addEventListener('change', balanceResult);
+
+function balanceResult(event) {
+  var form = event.target.closest ? event.target.closest('.balanceform') : null;
+  if (!form) { return; }
+
+  // The sign of the amount is the direction, so there is nothing else to pick.
+  var current = parseInt(form.dataset.balance, 10) || 0;
+  var amount = parseInt(form.querySelector('[name=amount]').value, 10) || 0;
+  var result = current + amount;
+
+  var field = form.querySelector('.result');
+  field.textContent = formatSum(result);
+  // A move that would leave the register owing money is refused on the server;
+  // saying so here saves the round trip.
+  field.classList.toggle('short', result < 0);
+}
+</script>
+</body>
+</html>{{end}}

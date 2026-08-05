@@ -1,0 +1,193 @@
+{{define "content"}}
+{{with .Card}}
+<h1>{{.Mask}}</h1>
+<p class="sub">{{if .Added}}<a href="/cards?tab=mocks">← mock cards</a>{{else}}<a href="/cards?tab=cashbox">← cards in the cashbox</a>{{end}} · {{.Sandbox}} · {{.System}}</p>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>Card</h2>
+    <div class="rowactions">
+      {{if .Added}}
+      <button type="button" onclick="dialogFor('card-edit')">Edit</button>
+      {{end}}
+      <form method="post" action="/cards/{{.ID}}/block">
+        <input type="hidden" name="back" value="/cards/{{.ID}}">
+        {{if eq .Outcome "blocked"}}
+        <button class="ghost" type="submit">Release</button>
+        {{else}}
+        <input type="hidden" name="blocked" value="1">
+        <button class="ghost danger" type="submit">Block</button>
+        {{end}}
+      </form>
+      {{if .Added}}
+      <span class="sep"></span>
+      <form method="post" action="/cards/{{.ID}}/delete"
+            onsubmit="return confirm('Delete this card? A token an integration stored stops working.')">
+        <button class="ghost danger">Delete</button>
+      </form>
+      {{end}}
+    </div>
+  </div>
+  {{if not .Added}}
+  <p class="hint">This card is the register's own, tokenized through cards.create. It can be blocked
+  — a bank does that to a real card — but nothing else about it is the console's to rewrite.</p>
+  {{end}}
+  <dl class="facts">
+    <dt>Row id</dt><dd>{{.ID}}</dd>
+    <dt>Added</dt>
+    <dd>{{if .Added}}a mock, added from the console{{else}}the register's own, through cards.create{{end}} · {{.Created}}</dd>
+    <dt>Registered</dt>
+    <dd>{{if .Registered}}the register tokenized it · {{moment .RegisteredAt}}{{else}}<span class="opt">no integration has asked for this card yet</span>{{end}}</dd>
+    <dt>Sandbox</dt><dd>{{.Sandbox}}</dd>
+    <dt>Token</dt><dd class="copy">{{.Token}}</dd>
+    <dt>Number</dt><dd class="copy">{{.Number}}</dd>
+    <dt>Expiry</dt><dd>{{.Expire}}</dd>
+    <dt>OTP</dt>
+    <dd>{{if .OTP}}<span class="copy">{{.OTP}}</span> ·
+      {{if .Added}}the stand's shared code, which every card added here takes{{else}}the expiry, year repeated{{end}}
+      {{else}}the stand's shared code, since this expiry spells none{{end}}</dd>
+    <dt>System</dt><dd>{{.System}}</dd>
+    <dt>Behaviour</dt>
+    <dd class="result{{if .Fails}} short{{end}}">{{.Behaviour}}</dd>
+    <dt>SMS</dt><dd>{{if .SMSEnabled}}enabled{{else}}not enabled · no OTP can be sent{{end}}</dd>
+    <dt>Balance</dt>
+    <dd>{{sum .Balance}} UZS <span class="opt">({{.Balance}} tiyin){{if .Frozen}} · frozen, payments never move it{{end}}</span></dd>
+    <dt>Stall</dt><dd>{{if .Delay}}{{.Delay}} seconds before answering{{else}}none{{end}}</dd>
+    <dt>Verified</dt><dd>{{if .Verify}}yes{{else}}no{{end}}</dd>
+    <dt>Recurrent</dt><dd>{{if .Recurrent}}yes{{else}}no{{end}}</dd>
+    <dt>Removed</dt><dd>{{if .Removed}}yes · the token answers with a refusal{{else}}no{{end}}</dd>
+    <dt>Phone</dt><dd>{{if .Phone}}{{.Phone}}{{else}}—{{end}}</dd>
+    <dt>Saved for</dt>
+    <dd>{{if .Account}}{{.Account}}{{else}}—{{end}}{{if .Customer}} · customer {{.Customer}}{{end}}</dd>
+  </dl>
+</div>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>{{len $.Cashboxes}} cashbox(es)</h2>
+    <span class="opt">a card belongs to the merchant, so every register of it can charge the card
+      unless it is taken off one — each register holds its own token for it</span>
+  </div>
+  {{if $.Cashboxes}}
+  <div class="scroll">
+  <table>
+    <tr><th>Cashbox</th><th>Kind</th><th>Token</th><th class="num">Payments</th><th>Usable</th><th></th></tr>
+    {{range $.Cashboxes}}
+    <tr>
+      <td><a href="/sandboxes/{{.SandboxID}}">{{.Slug}}</a>{{if .Home}} <span class="opt">added here</span>{{end}}</td>
+      <td><span class="tag">{{.Kind}}</span></td>
+      <td>{{if .Token}}<span class="copy mono">{{.Token}}</span>{{else}}<span class="opt">not tokenized here yet</span>{{end}}</td>
+      <td class="mono num">{{.Payments}}</td>
+      <td>{{if .Blocked}}<span class="tag bad">off this cashbox</span>{{else}}<span class="tag ok">yes</span>{{end}}</td>
+      <td>
+        <form method="post" action="/cards/{{$.Card.ID}}/cashbox">
+          <input type="hidden" name="sandbox_id" value="{{.SandboxID}}">
+          <input type="hidden" name="back" value="/cards/{{$.Card.ID}}">
+          {{if .Blocked}}
+          <button class="ghost" type="submit">Take it back</button>
+          {{else}}
+          <input type="hidden" name="blocked" value="1">
+          <button class="ghost danger" type="submit">Take off</button>
+          {{end}}
+        </form>
+      </td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+  {{else}}
+  <p class="empty">This card's stand belongs to no merchant, so only that stand can charge it.</p>
+  {{end}}
+</div>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>What this card has been through</h2>
+    <span class="tag">{{$.Activity.Requests}} call(s) named it</span>
+  </div>
+  {{if $.Activity.Any}}
+  <dl class="facts">
+    <dt>Calls</dt>
+    <dd>{{$.Activity.Requests}} logged call(s) carried this token · last {{$.Activity.Last}}</dd>
+    <dt>Payments</dt>
+    <dd>{{$.Activity.Payments}} charged the card · {{$.Activity.Payouts}} paid it</dd>
+    <dt>Ended</dt>
+    <dd>{{$.Activity.Paid}} paid · {{$.Activity.Cancelled}} cancelled
+      <span class="opt">a receipt still on its way is in neither</span></dd>
+    <dt>Taken off</dt><dd>{{sum $.Activity.Charged}} UZS</dd>
+    <dt>Put on</dt><dd>{{sum $.Activity.PaidOut}} UZS</dd>
+  </dl>
+  {{else}}
+  <p class="empty">Nothing has reached this card: no call named its token and no receipt was
+  made with it. A run that failed before the card and a run that never happened look the
+  same here, and this is which one it was.</p>
+  {{end}}
+</div>
+
+{{if $.Receipts}}
+<div class="panel">
+  <h2>{{len $.Receipts}} receipt(s)</h2>
+  <div class="scroll">
+  <table>
+    <tr><th>Created</th><th>Cashbox</th><th>Receipt</th><th>Way</th>
+        <th class="num">Amount, UZS</th><th>State</th></tr>
+    {{range $.Receipts}}
+    <tr class="row" data-href="/receipts/{{.ID}}">
+      <td class="mono">{{.CreatedAt}}</td>
+      <td>{{.Sandbox}}</td>
+      <td class="mono">{{.ReceiptID}}</td>
+      <td>{{if .Payout}}<span class="tag">paid the card</span>{{else}}<span class="tag">charged the card</span>{{end}}</td>
+      <td class="mono num">{{sum .Amount}}</td>
+      <td>{{if .Failed}}<span class="tag bad">{{.State}} · {{.StateLabel}}</span>
+          {{else if .Open}}<span class="tag warn">{{.State}} · {{.StateLabel}}</span>
+          {{else}}<span class="tag ok">{{.State}} · {{.StateLabel}}</span>{{end}}</td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+</div>
+{{end}}
+
+{{if .Added}}
+<dialog id="card-edit">
+  <h3>Edit card {{.ID}}</h3>
+  <form method="post" action="/cards/{{.ID}}" class="edit">
+    <input type="hidden" name="back" value="/cards/{{.ID}}">
+    <div>
+      <label for="outcome">Behaviour</label>
+      <select id="outcome" name="outcome">
+        {{$outcome := .Outcome}}
+        {{range $.Outcomes}}<option value="{{.Value}}" {{if eq .Value $outcome}}selected{{end}}>{{.Label}}</option>{{end}}
+      </select>
+    </div>
+    <p class="hint">A refused card answers -31008 with its own reason; a system error answers -32400.
+    The number and the token stay as they are, so a stored token keeps standing for this card.</p>
+    <div class="inline">
+      <div>
+        <label for="balance">Balance (tiyin)</label>
+        <input id="balance" name="balance" type="number" min="0" value="{{.Balance}}">
+      </div>
+      <div>
+        <label for="delay">Stall (seconds)</label>
+        <input id="delay" name="delay" type="number" min="0" step="0.1" value="{{.Delay}}">
+      </div>
+    </div>
+    <div>
+      <label for="phone">Phone <span class="opt">optional</span></label>
+      <input id="phone" name="phone" value="{{.Phone}}">
+    </div>
+    <div>
+      <label><input type="checkbox" name="verify" value="1" {{if .Verify}}checked{{end}} style="min-width:0"> Verified</label>
+      <label><input type="checkbox" name="recurrent" value="1" {{if .Recurrent}}checked{{end}} style="min-width:0"> Recurrent</label>
+      <label><input type="checkbox" name="sms_enabled" value="1" {{if .SMSEnabled}}checked{{end}} style="min-width:0"> SMS enabled</label>
+      <label><input type="checkbox" name="frozen" value="1" {{if .Frozen}}checked{{end}} style="min-width:0"> Frozen balance</label>
+    </div>
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+{{end}}
+{{end}}
+{{end}}

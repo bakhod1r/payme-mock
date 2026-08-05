@@ -1,0 +1,117 @@
+{{define "content"}}
+<h1>Live</h1>
+<p class="sub">What is happening right now: payments that moved in the last {{.Window}} minute(s),
+every payment still open whatever its age, and the cards that appeared alongside them.</p>
+
+<dialog id="live-filter">
+  <h3>What counts as now</h3>
+  <form method="get" action="/live" class="edit">
+    <div>
+      <label for="window">Window</label>
+      <select id="window" name="window">
+        {{$window := .Window}}
+        {{range .Windows}}<option value="{{.}}" {{if eq . $window}}selected{{end}}>last {{.}} minute(s)</option>{{end}}
+      </select>
+    </div>
+    <p class="hint">Payments still open are listed whatever their age; the window only decides
+    how much of what has already finished is worth showing.</p>
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit">Apply</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>{{len .LiveTransactions}} payment(s)</h2>
+    <div class="rowactions">
+      <label class="opt" style="margin:0">
+        <input type="checkbox" id="live-refresh" checked style="min-width:0"> refresh every 5s
+      </label>
+      <span class="tag">last {{.Window}} min</span>
+      <button type="button" class="ghost" onclick="dialogFor('live-filter')">Filter</button>
+    </div>
+  </div>
+  {{if .LiveTransactions}}
+  <div class="scroll">
+  <table>
+    <tr>
+      <th>When</th><th>Sandbox</th><th>Payme id</th><th>Order</th>
+      <th class="num">Amount, UZS</th><th>State</th>
+    </tr>
+    {{range .LiveTransactions}}
+    <tr class="row" data-href="/transactions/{{.ID}}">
+      <td class="mono">{{.Ago}}</td>
+      <td>{{.Sandbox}}</td>
+      <td class="mono">{{.PaymeID}}</td>
+      <td class="mono">{{.OrderID}}</td>
+      <td class="mono num">{{sum .Amount}}</td>
+      <td>
+        {{if .Failed}}<span class="tag bad">{{.State}} · {{.StateLabel}}</span>
+        {{else if .Open}}<span class="tag warn">{{.State}} · in progress</span>
+        {{else}}<span class="tag ok">{{.State}} · {{.StateLabel}}</span>{{end}}
+      </td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+  {{else}}
+  <p class="empty">Nothing has moved in the last {{.Window}} minute(s), and nothing is open.</p>
+  {{end}}
+</div>
+
+<div class="panel">
+  <h2>{{len .LiveCards}} card(s) added</h2>
+  {{if .LiveCards}}
+  <div class="scroll">
+  <table>
+    <tr><th>When</th><th>Sandbox</th><th>Number</th><th>OTP</th><th>Behaviour</th><th>Added by</th><th class="num">Balance, UZS</th></tr>
+    {{range .LiveCards}}
+    <tr class="row" data-href="/cards/{{.ID}}">
+      <td class="mono">{{.Ago}}</td>
+      <td>{{.Sandbox}}</td>
+      <td class="mono">{{.Mask}}</td>
+      <td class="mono">{{if .OTP}}{{.OTP}}{{else}}<span class="opt">shared</span>{{end}}</td>
+      <td>{{if .Fails}}<span class="tag bad">{{.Behaviour}}</span>{{else}}<span class="tag ok">success</span>{{end}}</td>
+      <td>{{if .Added}}<span class="tag">console</span>{{else}}<span class="tag">cards.create</span>{{end}}</td>
+      <td class="mono num">{{sum .Balance}}</td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+  {{else}}
+  <p class="empty">No card has been added in the last {{.Window}} minute(s).</p>
+  {{end}}
+</div>
+
+<p class="sub"><a href="/orders">Orders</a> · <a href="/transactions">all payments</a> · <a href="/cards">all cards</a></p>
+
+<script>
+// The screen reloads itself, because a live view an operator has to refresh is
+// not one. The checkbox is the way out: reading a row is impossible if the
+// page reloads under it, so anyone who needs to stop can.
+(function () {
+  var box = document.getElementById('live-refresh');
+  if (!box) { return; }
+
+  var timer = setInterval(tick, 5000);
+
+  function tick() {
+    if (!box.checked) { return; }
+    // A hidden tab is not being read, so there is nothing to keep fresh.
+    if (document.hidden) { return; }
+    window.location.reload();
+  }
+
+  // Leaving the checkbox off survives the reload, so the choice is not undone
+  // by the very thing it was turning off.
+  box.checked = sessionStorage.getItem('live-refresh') !== 'off';
+  box.addEventListener('change', function () {
+    sessionStorage.setItem('live-refresh', box.checked ? 'on' : 'off');
+    if (!box.checked) { clearInterval(timer); return; }
+    timer = setInterval(tick, 5000);
+  });
+})();
+</script>
+{{end}}

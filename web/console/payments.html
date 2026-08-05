@@ -1,0 +1,126 @@
+{{define "content"}}
+<h1>Payments</h1>
+<p class="sub">Every payment the stand handled, both sides of it: the top-up that took money off a
+card, the withdrawal that put it back, and the transaction the merchant was driven through. A
+withdrawal has no merchant transaction — it asks a merchant for nothing — and a call made straight
+against the Merchant API has no receipt. Both are here, said plainly.</p>
+
+{{if .Error}}<div class="err">{{.Error}}</div>{{end}}
+
+<div class="panel">
+  <div class="panelhead">
+    <h2>{{len .Payments}} payment(s)</h2>
+    <div class="rowactions">
+      {{if .PaymentFilter.Narrowed}}
+      {{if .PaymentFilter.Sandbox}}<span class="tag">{{.PaymentFilter.Sandbox}}</span>{{end}}
+      {{if .PaymentFilter.Way}}<span class="tag">{{.PaymentFilter.Way}}</span>{{end}}
+      {{if .PaymentFilter.State}}<span class="tag">{{.PaymentFilter.State}}</span>{{end}}
+      {{if .PaymentFilter.Query}}<span class="tag">“{{.PaymentFilter.Query}}”</span>{{end}}
+      <a href="/payments"><button type="button" class="ghost">Clear</button></a>
+      {{end}}
+      {{if ne .PaymentFilter.Sort "newest"}}<span class="tag">{{.PaymentFilter.Sort}} first</span>{{end}}
+      <form method="get" action="/payments" class="search">
+        <input type="hidden" name="sandbox" value="{{.PaymentFilter.Sandbox}}">
+        <input type="hidden" name="way" value="{{.PaymentFilter.Way}}">
+        <input type="hidden" name="state" value="{{.PaymentFilter.State}}">
+        <input type="hidden" name="sort" value="{{.PaymentFilter.Sort}}">
+        <input type="search" name="q" value="{{.PaymentFilter.Query}}" placeholder="receipt id, payme id, card or order">
+        <button type="submit" class="ghost">Search</button>
+      </form>
+      <button type="button" onclick="dialogFor('pay-filter')">Filter</button>
+    </div>
+  </div>
+
+  {{if .Payments}}
+  <div class="scroll">
+  <table>
+    <tr>
+      <th>Id</th><th>Cashbox</th><th>What</th><th>Card</th>
+      <th class="num">Amount, UZS</th><th>State</th><th>Created</th>
+    </tr>
+    {{range .Payments}}
+    <tr class="row" data-href="{{.Href}}">
+      <td class="mono"><strong>{{.Ref}}</strong></td>
+      <td>{{.Sandbox}} <span class="opt">{{.Kind}}</span></td>
+      <td>{{if eq .Way "withdraw"}}<span class="tag warn">{{.Way}}</span>
+          {{else if eq .Way "top up"}}<span class="tag ok">{{.Way}}</span>
+          {{else}}<span class="tag">{{.Way}}</span>{{end}}</td>
+      <td class="mono">{{if .CardID}}{{.Card}}{{else}}<span class="opt">{{.Card}}</span>{{end}}</td>
+      <td class="mono num">{{sum .Amount}}</td>
+      <td>
+        {{if .Failed}}<span class="tag bad">{{.State}} · {{.StateLabel}}</span>
+        {{else if .Open}}<span class="tag warn">{{.State}} · {{.StateLabel}}</span>
+        {{else}}<span class="tag ok">{{.State}} · {{.StateLabel}}</span>{{end}}
+      </td>
+      <td class="mono opt">{{.Created}}</td>
+    </tr>
+    {{end}}
+  </table>
+  </div>
+  {{else}}
+  <p class="empty">Nothing matches. Payments show up here the moment the stand is called.</p>
+  {{end}}
+
+{{if .Page.Rows}}
+<div class="pager">
+  {{if .Page.HasPrev}}<a href="{{.Page.PrevURL}}"><button type="button" class="ghost">← Newer</button></a>
+  {{else}}<button type="button" class="ghost" disabled>← Newer</button>{{end}}
+  <span class="opt">{{.Page.From}}–{{.Page.To}}</span>
+  {{if .Page.HasNext}}<a href="{{.Page.NextURL}}"><button type="button" class="ghost">Older →</button></a>
+  {{else}}<button type="button" class="ghost" disabled>Older →</button>{{end}}
+  <span class="sizes">
+    {{range .Page.Sizes}}<a href="{{.URL}}" {{if .On}}class="on"{{end}}>{{.Value}}</a>{{end}}
+    <span class="opt">per page</span>
+  </span>
+</div>
+{{end}}
+
+</div>
+
+<dialog id="pay-filter">
+  <h3>Filter payments</h3>
+  <form method="get" action="/payments" class="edit">
+    <div>
+      <label for="sandbox">Cashbox</label>
+      <select id="sandbox" name="sandbox">
+        <option value="">every cashbox</option>
+        {{$sandbox := .PaymentFilter.Sandbox}}
+        {{range .Sandboxes}}<option value="{{.Slug}}" {{if eq .Slug $sandbox}}selected{{end}}>{{.Slug}} · {{.Kind}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="way">Which way</label>
+      <select id="way" name="way">
+        <option value="">any direction</option>
+        {{$way := .PaymentFilter.Way}}
+        {{range .Results}}<option value="{{.Value}}" {{if eq .Value $way}}selected{{end}}>{{.Label}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="state">How it ended</label>
+      <select id="state" name="state">
+        <option value="">any state</option>
+        {{$state := .PaymentFilter.State}}
+        {{range .States}}<option value="{{.Value}}" {{if eq .Value $state}}selected{{end}}>{{.Label}}</option>{{end}}
+      </select>
+    </div>
+    <p class="hint">The two sides number their states differently — a receipt is paid at 4, a
+    merchant payment performed at 2 — so the filter asks the question rather than the number.</p>
+    <div>
+      <label for="sort">Order</label>
+      <select id="sort" name="sort">
+        {{$sort := .PaymentFilter.Sort}}
+        {{range .Sorts}}<option value="{{.Value}}" {{if eq .Value $sort}}selected{{end}}>{{.Label}}</option>{{end}}
+      </select>
+    </div>
+    <div>
+      <label for="q">Receipt id, Payme id, card or order</label>
+      <input id="q" name="q" value="{{.PaymentFilter.Query}}" placeholder="5305e3ba… or 8600…">
+    </div>
+    <div class="actions">
+      <button type="button" class="ghost" onclick="this.closest('dialog').close()">Cancel</button>
+      <button type="submit">Apply</button>
+    </div>
+  </form>
+</dialog>
+{{end}}
