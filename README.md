@@ -243,6 +243,11 @@ links become sibling `.html` files, and each filter is captured as its own page
 so the controls still work. Anything that would change something — every POST
 form and its buttons — is made inert.
 
+## Deploying
+
+Running the stand on a server rather than a laptop — Compose on one host, a
+proxy in front, backups and updates — is covered in [DEPLOY.md](DEPLOY.md).
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Issues and pull requests are welcome.
