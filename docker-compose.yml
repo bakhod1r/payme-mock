@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: payme
       POSTGRES_DB: paymemock
     ports:
-      - "5433:5432"
+      - "${POSTGRES_HOST_PORT:-5433}:5432"
     volumes:
       # Postgres 18 images keep data in a major-version subdirectory, so the
       # mount goes one level up; mounting .../data leaves it unused and the
@@ -23,7 +23,7 @@ services:
   redis:
     image: redis:7.4-alpine
     ports:
-      - "6380:6379"
+      - "${REDIS_HOST_PORT:-6380}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 3s
@@ -42,7 +42,7 @@ services:
       HTTP_ADDR: ":8081"
       SUBSCRIBE_BASE_URL: http://paymemock:8082/api
     ports:
-      - "8081:8081"
+      - "${MERCHANT_HOST_PORT:-8081}:8081"
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
@@ -60,7 +60,7 @@ services:
       HTTP_ADDR: ":8082"
       MERCHANT_BASE_URL: http://merchant:8081
     ports:
-      - "8082:8082"
+      - "${PAYMEMOCK_HOST_PORT:-8082}:8082"
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
@@ -90,7 +90,7 @@ services:
       # Bound to loopback deliberately. The console shows every sandbox's keys
       # and skips the login for local callers; published on every interface
       # that pair would hand the keys to the network.
-      - "127.0.0.1:8080:8080"
+      - "${CONSOLE_BIND_ADDR:-127.0.0.1}:${CONSOLE_HOST_PORT:-8080}:8080"
     depends_on:
       postgres: {condition: service_healthy}
 
@@ -130,7 +130,7 @@ services:
   #     MERCHANT_UPSTREAM: http://merchant:8081
   #     PAYMEMOCK_UPSTREAM: http://paymemock:8082
   #   ports:
-  #     - "8443:8443"
+  #     - "${GATEWAY_HOST_PORT:-8443}:8443"
   #   volumes:
   #     - certs:/certs
   #   depends_on:
